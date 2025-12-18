@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Data - LemurDX Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: #f0f0f0;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        select, input[type="date"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+        .info-text {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📥 Export Data</h1>
+                <p class="subtitle">Select a user, device, date range, and measure type to export data</p>
+            </div>
+            <a href="/admin" class="back-link">← Back to Admin</a>
+        </div>
+        
+        <form id="exportForm">
+            <div class="form-group">
+                <label for="userId">Select User *</label>
+                <select id="userId" name="userId" required>
+                    <option value="">Loading users...</option>
+                </select>
+                <p class="info-text">Choose a user from the database</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="deviceId">Select Device *</label>
+                <select id="deviceId" name="deviceId" required disabled>
+                    <option value="">Select a user first</option>
+                </select>
+                <p class="info-text">Devices will appear after selecting a user</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="measureName">Measure Type *</label>
+                <select id="measureName" name="measureName" required>
+                    <option value="">Select measure type...</option>
+                    <option value="motion_data">Motion Data</option>
+                    <option value="heart_rate_data">Heart Rate Data</option>
+                    <option value="location_data">Location Data</option>
+                    <option value="label_data">Label Data</option>
+                </select>
+                <p class="info-text">Type of sensor data to export</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Date Range</label>
+                <div class="date-range">
+                    <div>
+                        <label for="startTime" style="font-size: 12px;">Start Date & Time</label>
+                        <input type="datetime-local" id="startTime" name="startTime">
+                    </div>
+                    <div>
+                        <label for="endTime" style="font-size: 12px;">End Date & Time</label>
+                        <input type="datetime-local" id="endTime" name="endTime">
+                    </div>
+                </div>
+                <p class="info-text" id="dateRangeInfo">Select a device and measure type to see available date range</p>
+            </div>
+            
+            <button type="submit" class="btn" id="exportBtn">Export to CSV</button>
+            
+            <div class="loading" id="loading">Exporting data... Please wait.</div>
+            <div class="error" id="error"></div>
+            <div class="success" id="success"></div>
+        </form>
+    </div>
+    
+    <script>
+        // Load users on page load
+        fetch('/users', {
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('userId');
+                select.innerHTML = '<option value="">Select a user...</option>';
+                data.users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.email} (${user.type})`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                document.getElementById('userId').innerHTML = '<option value="">Error loading users</option>';
+                showError('Failed to load users: ' + error.message);
+            });
+        
+        // Load devices when user is selected
+        document.getElementById('userId').addEventListener('change', function() {
+            const userId = this.value;
+            const deviceSelect = document.getElementById('deviceId');
+            
+            if (!userId) {
+                deviceSelect.innerHTML = '<option value="">Select a user first</option>';
+                deviceSelect.disabled = true;
+                return;
+            }
+            
+            deviceSelect.disabled = true;
+            deviceSelect.innerHTML = '<option value="">Loading devices...</option>';
+            
+            fetch(`/api/user/${userId}/devices`, {
+                credentials: 'include'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    deviceSelect.innerHTML = '<option value="">Select a device...</option>';
+                    if (data.devices.length === 0) {
+                        deviceSelect.innerHTML = '<option value="">No devices found for this user</option>';
+                    } else {
+                        data.devices.forEach(device => {
+                            const option = document.createElement('option');
+                            option.value = device.hardware_id;
+                            option.textContent = `Device ${device.hardware_id}`;
+                            deviceSelect.appendChild(option);
+                        });
+                        deviceSelect.disabled = false;
+                        // Check if measure is also selected to fetch date range
+                        updateDateRange();
+                    }
+                })
+                .catch(error => {
+                    deviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+                    showError('Failed to load devices: ' + error.message);
+                });
+        });
+        
+        // Update date range when device changes
+        document.getElementById('deviceId').addEventListener('change', function() {
+            updateDateRange();
+        });
+        
+        // Update date range when measure type changes
+        document.getElementById('measureName').addEventListener('change', function() {
+            updateDateRange();
+        });
+        
+        // Function to fetch and update date range restrictions
+        function updateDateRange() {
+            const deviceId = document.getElementById('deviceId').value;
+            const measureName = document.getElementById('measureName').value;
+            const startTimeInput = document.getElementById('startTime');
+            const endTimeInput = document.getElementById('endTime');
+            const dateRangeInfo = document.getElementById('dateRangeInfo');
+            
+            // Reset date inputs
+            startTimeInput.min = '';
+            startTimeInput.max = '';
+            endTimeInput.min = '';
+            endTimeInput.max = '';
+            startTimeInput.value = '';
+            endTimeInput.value = '';
+            
+            if (!deviceId || !measureName) {
+                dateRangeInfo.textContent = 'Select a device and measure type to see available date range';
+                return;
+            }
+            
+            dateRangeInfo.textContent = 'Loading available date range...';
+            
+            fetch(`/api/date-range?device_id=${encodeURIComponent(deviceId)}&measure_name=${encodeURIComponent(measureName)}`, {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (!response.ok && response.status === 404) {
+                        return response.json().then(data => {
+                            dateRangeInfo.textContent = 'No data available for this device and measure type';
+                            startTimeInput.disabled = true;
+                            endTimeInput.disabled = true;
+                            throw new Error('No data found');
+                        });
+                    }
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            dateRangeInfo.textContent = 'Error loading date range: ' + (data.error || 'Unknown error');
+                            startTimeInput.disabled = false;
+                            endTimeInput.disabled = false;
+                            throw new Error(data.error || 'Unknown error');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        dateRangeInfo.textContent = 'Error loading date range: ' + data.error;
+                        startTimeInput.disabled = false;
+                        endTimeInput.disabled = false;
+                        return;
+                    }
+                    
+                    if (data.min_time && data.max_time) {
+                        // Set min/max attributes for date inputs
+                        startTimeInput.min = data.min_time;
+                        startTimeInput.max = data.max_time;
+                        endTimeInput.min = data.min_time;
+                        endTimeInput.max = data.max_time;
+                        
+                        // Format dates for display
+                        const minDate = new Date(data.min_time_full);
+                        const maxDate = new Date(data.max_time_full);
+                        const minFormatted = minDate.toLocaleString();
+                        const maxFormatted = maxDate.toLocaleString();
+                        
+                        dateRangeInfo.textContent = `Available date range: ${minFormatted} to ${maxFormatted}`;
+                        startTimeInput.disabled = false;
+                        endTimeInput.disabled = false;
+                    } else {
+                        dateRangeInfo.textContent = 'No date range information available';
+                        startTimeInput.disabled = false;
+                        endTimeInput.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    dateRangeInfo.textContent = 'Error loading date range: ' + error.message;
+                    startTimeInput.disabled = false;
+                    endTimeInput.disabled = false;
+                });
+        }
+        
+        // Handle form submission
+        document.getElementById('exportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const deviceId = document.getElementById('deviceId').value;
+            const measureName = document.getElementById('measureName').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            if (!deviceId || !measureName) {
+                showError('Please select both a device and measure type.');
+                return;
+            }
+            
+            // Format datetime for API (convert from datetime-local to YYYY-MM-DD HH:MM:SS)
+            let startTimeFormatted = '';
+            let endTimeFormatted = '';
+            
+            if (startTime) {
+                startTimeFormatted = startTime.replace('T', ' ');
+                // Add seconds if not present (datetime-local doesn't include seconds)
+                if (startTimeFormatted.length === 16) {
+                    startTimeFormatted += ':00';
+                }
+            }
+            
+            if (endTime) {
+                endTimeFormatted = endTime.replace('T', ' ');
+                // Add seconds if not present
+                if (endTimeFormatted.length === 16) {
+                    endTimeFormatted += ':00';
+                }
+            }
+            
+            // Build query parameters
+            const params = new URLSearchParams({
+                device_id: deviceId,
+                measure_name: measureName
+            });
+            
+            if (startTimeFormatted) {
+                params.append('start_time', startTimeFormatted);
+            }
+            if (endTimeFormatted) {
+                params.append('end_time', endTimeFormatted);
+            }
+            
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+            document.getElementById('exportBtn').disabled = true;
+            
+            // Make request to export endpoint
+            fetch(`/export?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Export failed');
+                    });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                a.download = `${deviceId}-${measureName}-${timestamp}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showSuccess('Export completed successfully! File downloaded.');
+            })
+            .catch(error => {
+                showError('Export failed: ' + error.message);
+            })
+            .finally(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('exportBtn').disabled = false;
+            });
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,80 +1,55 @@
-from flask import Flask, request, send_file, jsonify, render_template
+from flask import Flask, request, send_file, jsonify, render_template, Response
+from functools import wraps
 import os
 import tempfile
-import json
 import threading
-import atexit
-from threading import Lock
-from export import (
-    export_sensor_data_to_csv, load_all_config, get_db_connection, MEASURE_DEFINITIONS,
-    get_timestream_date_range, get_postgres_label_date_range
-)
-import psycopg2
-import boto3
-from botocore.config import Config
+import csv
+from io import StringIO
+from export import export_sensor_data_to_csv, load_all_config, get_db_connection, get_timestream_date_range, get_postgres_label_date_range
+from validate_data import get_all_users_with_devices, load_validation_results, run_validation
 from datetime import datetime
-from validate_data import load_validation_results, run_validation, load_validation_history
-from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 
-# Initialize scheduler
-scheduler = BackgroundScheduler()
-scheduler.start()
+# Admin credentials (can be overridden via environment variables)
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')  # Change this in production!
 
-# Default validation settings
-VALIDATION_DAYS_BACK = int(os.environ.get('VALIDATION_DAYS_BACK', '1'))
-VALIDATION_RUN_ON_STARTUP = os.environ.get('VALIDATION_RUN_ON_STARTUP', 'false').lower() == 'true'
+# Track if validation is running
+_validation_lock = threading.Lock()
+_validation_running = False
 
-# Track validation status (thread-safe)
-validation_status = {
-    'is_running': False,
-    'start_time': None,
-    'last_completed': None
-}
-validation_lock = Lock()
+def check_auth(username, password):
+    """Check if username and password are correct"""
+    return username == ADMIN_USERNAME and password == ADMIN_PASSWORD
 
-def run_validation_job():
-    """Background job to run data validation"""
-    global validation_status
-    with validation_lock:
-        validation_status['is_running'] = True
-        validation_status['start_time'] = datetime.now().isoformat()
-    
-    try:
-        print(f"[Validation Job] Starting scheduled validation at {datetime.now()}")
-        run_validation(days_back=VALIDATION_DAYS_BACK)
-        with validation_lock:
-            validation_status['last_completed'] = datetime.now().isoformat()
-        print(f"[Validation Job] Validation completed successfully at {datetime.now()}")
-    except Exception as e:
-        print(f"[Validation Job] Validation failed: {e}")
-    finally:
-        with validation_lock:
-            validation_status['is_running'] = False
-            validation_status['start_time'] = None
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    # Check if this is an API request (JSON expected)
+    if request.path.startswith('/api/') or request.accept_mimetypes.accept_json:
+        return jsonify({
+            'error': 'Authentication required',
+            'message': 'You must login with proper credentials'
+        }), 401, {'WWW-Authenticate': 'Basic realm="Login Required"'}
+    else:
+        return Response(
+            'Could not verify your access level for that URL.\n'
+            'You have to login with proper credentials', 401,
+            {'WWW-Authenticate': 'Basic realm="Login Required"'}
+        )
 
-# Schedule validation to run daily at 2 AM
-scheduler.add_job(
-    func=run_validation_job,
-    trigger='cron',
-    hour=2,
-    minute=0,
-    id='daily_validation',
-    name='Daily Data Validation',
-    replace_existing=True
-)
-
-# Optionally run validation on startup if configured
-if VALIDATION_RUN_ON_STARTUP:
-    print("[Validation] Running validation on startup...")
-    # Run in a separate thread to not block Flask startup
-    threading.Thread(target=run_validation_job, daemon=True).start()
-
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
+def requires_auth(f):
+    """Decorator to require HTTP Basic Auth"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
 
 @app.route('/export', methods=['POST', 'GET'])
+@requires_auth
 def export_data():
     """
     Export sensor data to CSV based on device_id, start_time, end_time, and measure_name.
@@ -152,93 +127,83 @@ def export_data():
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
-def get_user_devices(db_config, user_id):
-    """Get all devices/watches associated with a user"""
-    devices = []
-    try:
-        with get_db_connection(db_config) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT w.id, w.hardware_id, w.created_at
-                    FROM watches w
-                    JOIN users_watches uw ON w.id = uw.watch_id
-                    WHERE uw.user_id = %s
-                    ORDER BY w.hardware_id ASC;
-                """, (user_id,))
-                device_results = cursor.fetchall()
-                
-                for device_row in device_results:
-                    devices.append({
-                        'watch_id': device_row[0],
-                        'hardware_id': device_row[1],
-                        'created_at': str(device_row[2]) if device_row[2] else None
-                    })
-    except psycopg2.Error as e:
-        raise Exception(f'Database error: {str(e)}')
-    return devices
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy'}), 200
+
+@app.route('/admin', methods=['GET'])
+@requires_auth
+def admin_page():
+    """Admin index page (password protected)"""
+    return render_template('admin.html')
+
+@app.route('/admin/export', methods=['GET'])
+@requires_auth
+def admin_export():
+    """Admin page for exporting user data (password protected)"""
+    return render_template('export.html')
+
+@app.route('/admin/validation', methods=['GET'])
+@requires_auth
+def admin_validation():
+    """Admin page for data validation (password protected)"""
+    return render_template('validation.html')
 
 @app.route('/users', methods=['GET'])
-def list_users():
-    """List all users from the database"""
+@requires_auth
+def get_users():
+    """Get all users with devices"""
     try:
         config = load_all_config()
+        users_with_devices = get_all_users_with_devices(config["db"])
         
-        # Validate DB config
-        if not all(config["db"].values()):
-            return jsonify({'error': 'Database configuration is not set. Please set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD environment variables.'}), 500
-        
+        # Format for frontend
         users = []
-        try:
-            with get_db_connection(config["db"]) as conn:
-                with conn.cursor() as cursor:
-                    # Query all users
-                    cursor.execute("""
-                        SELECT id, email, type, created_at
-                        FROM users
-                        ORDER BY id ASC;
-                    """)
-                    user_results = cursor.fetchall()
-                    
-                    # Format results as list of dictionaries
-                    for user_row in user_results:
-                        users.append({
-                            'id': user_row[0],
-                            'email': user_row[1],
-                            'type': user_row[2],
-                            'created_at': str(user_row[3]) if user_row[3] else None
-                        })
-        except psycopg2.Error as e:
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        for user_info in users_with_devices:
+            users.append({
+                'id': user_info['user_id'],
+                'email': user_info['email'],
+                'type': user_info['type']
+            })
         
-        return jsonify({
-            'count': len(users),
-            'users': users
-        }), 200
-        
+        return jsonify({'users': users}), 200
     except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/user/<int:user_id>/devices', methods=['GET'])
-def get_devices_for_user(user_id):
-    """Get all devices for a specific user"""
+@requires_auth
+def get_user_devices(user_id):
+    """Get devices for a specific user"""
     try:
         config = load_all_config()
+        users_with_devices = get_all_users_with_devices(config["db"])
         
-        if not all(config["db"].values()):
-            return jsonify({'error': 'Database configuration is not set.'}), 500
+        # Find user
+        user_info = None
+        for u in users_with_devices:
+            if u['user_id'] == user_id:
+                user_info = u
+                break
         
-        devices = get_user_devices(config["db"], user_id)
-        return jsonify({
-            'count': len(devices),
-            'devices': devices
-        }), 200
+        if not user_info:
+            return jsonify({'error': 'User not found'}), 404
         
+        # Format devices
+        devices = []
+        for device_id in user_info['devices']:
+            devices.append({
+                'hardware_id': device_id
+            })
+        
+        return jsonify({'devices': devices}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/date-range', methods=['GET'])
+@requires_auth
 def get_date_range():
-    """Get the available date range for a device and measure type"""
+    """Get date range for a device and measure"""
     try:
         device_id = request.args.get('device_id')
         measure_name = request.args.get('measure_name')
@@ -246,149 +211,169 @@ def get_date_range():
         if not device_id or not measure_name:
             return jsonify({'error': 'device_id and measure_name are required'}), 400
         
-        if measure_name not in MEASURE_DEFINITIONS:
-            return jsonify({'error': f'Invalid measure_name: {measure_name}'}), 400
-        
         config = load_all_config()
-        min_time = None
-        max_time = None
         
-        if measure_name == "label_data":
-            # Query PostgreSQL for label data date range
-            if not all(config["db"].values()):
-                return jsonify({'error': 'Database configuration is not set.'}), 500
-            
+        # Get date range based on measure type
+        if measure_name == 'label_data':
             min_time, max_time = get_postgres_label_date_range(config["db"], device_id)
         else:
-            # Query Timestream for sensor data date range
-            if not config["timestream"]["database"] or not config["timestream"]["table"]:
-                return jsonify({'error': 'Timestream configuration is not set.'}), 500
-            
-            ts_query_client = boto3.client('timestream-query', config=Config(read_timeout=30, retries={'max_attempts': 5}))
+            # Create Timestream client
+            import boto3
+            from botocore.config import Config
+            ts_config = Config(
+                region_name=os.environ.get('AWS_REGION', 'us-east-1'),
+                retries={'max_attempts': 3}
+            )
+            ts_query_client = boto3.client('timestream-query', config=ts_config)
             min_time, max_time = get_timestream_date_range(ts_query_client, config, device_id, measure_name)
         
         if min_time is None or max_time is None:
-            return jsonify({
-                'error': 'No data found for the specified device and measure type',
-                'min_time': None,
-                'max_time': None
-            }), 404
+            return jsonify({'error': 'No data found for this device and measure type'}), 404
         
-        # Format dates for datetime-local input (YYYY-MM-DDTHH:MM)
-        # Normalize different datetime formats
-        def normalize_datetime(dt_str):
-            """Convert various datetime formats to YYYY-MM-DDTHH:MM format"""
-            if not dt_str:
-                return None
-            
-            # Handle ISO format with T separator (from Timestream)
-            if 'T' in dt_str:
-                dt_str = dt_str.replace('T', ' ')
-            
-            # Parse and reformat
-            try:
-                # Try parsing different formats
-                for fmt in ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d']:
-                    try:
-                        dt = datetime.strptime(dt_str.split('.')[0].split('+')[0].strip(), fmt)
-                        return dt.strftime('%Y-%m-%dT%H:%M')
-                    except ValueError:
-                        continue
-                # If all parsing fails, try to extract YYYY-MM-DDTHH:MM
-                if len(dt_str) >= 16:
-                    return dt_str[:16].replace(' ', 'T')
-                return dt_str
-            except Exception:
-                return dt_str[:16].replace(' ', 'T') if len(dt_str) >= 16 else dt_str
-        
-        min_formatted = normalize_datetime(min_time)
-        max_formatted = normalize_datetime(max_time)
+        # Format for datetime-local input (YYYY-MM-DDTHH:MM)
+        min_time_dt = datetime.fromisoformat(min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time)
+        max_time_dt = datetime.fromisoformat(max_time.replace('Z', '+00:00') if 'Z' in max_time else max_time)
         
         return jsonify({
-            'min_time': min_formatted,
-            'max_time': max_formatted,
+            'min_time': min_time_dt.strftime('%Y-%m-%dT%H:%M'),
+            'max_time': max_time_dt.strftime('%Y-%m-%dT%H:%M'),
             'min_time_full': min_time,
             'max_time_full': max_time
         }), 200
-        
     except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/validation-results', methods=['GET'])
+@requires_auth
 def get_validation_results():
-    """Get validation results from the last run"""
+    """Get validation results"""
     try:
-        # Check if validation is currently running (thread-safe)
-        with validation_lock:
-            is_running = validation_status['is_running']
-            start_time = validation_status.get('start_time')
+        results = load_validation_results()
+        
+        if results is None:
+            # Check if validation is running
+            with _validation_lock:
+                is_running = _validation_running
+            
+            if is_running:
+                return jsonify({
+                    'is_running': True,
+                    'status': 'running',
+                    'users': [],
+                    'message': 'Validation is running...'
+                }), 202
+            
+            return jsonify({
+                'message': 'No validation results found. Click "Run Now" to start validation.',
+                'last_run': None
+            }), 404
+        
+        # Check if validation is still running
+        with _validation_lock:
+            is_running = _validation_running
         
         if is_running:
             return jsonify({
+                'is_running': True,
                 'status': 'running',
-                'message': 'Validation is currently in progress',
-                'start_time': start_time,
-                'is_running': True
-            }), 202  # Accepted - processing
-        
-        results = load_validation_results()
-        if results is None:
-            return jsonify({
-                'error': 'No validation results found. Validation will run automatically.',
-                'last_run': None,
-                'is_running': False
-            }), 404
-        
-        # Add scheduler info
-        jobs = scheduler.get_jobs()
-        next_run = None
-        for job in jobs:
-            if job.id == 'daily_validation':
-                next_run = job.next_run_time.isoformat() if job.next_run_time else None
-                break
-        
-        results['scheduler'] = {
-            'enabled': True,
-            'next_run': next_run,
-            'days_back': VALIDATION_DAYS_BACK
-        }
-        
-        # Add validation history
-        history = load_validation_history()
-        results['history'] = history
-        
-        # Add status info (thread-safe)
-        with validation_lock:
-            results['is_running'] = False
-            results['last_completed'] = validation_status.get('last_completed')
+                **results
+            }), 202
         
         return jsonify(results), 200
-        
     except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/validation-results/csv', methods=['GET'])
+@requires_auth
+def download_validation_csv():
+    """Download validation results as CSV"""
+    try:
+        results = load_validation_results()
+        
+        if results is None:
+            return jsonify({'error': 'No validation results found'}), 404
+        
+        # Create CSV
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'User ID', 'Email', 'User Type', 'Device ID', 'Modality',
+            'Has Data', 'Total Rows', 'Missing Values Count', 'Format Errors',
+            'Format Valid', 'Gap Count', 'Sampling Frequency'
+        ])
+        
+        # Write data
+        for user in results.get('users', []):
+            for device in user.get('devices', []):
+                for modality, mod_result in (device.get('modalities') or {}).items():
+                    missing_count = sum(
+                        (mv.get('count', 0) for mv in (mod_result.get('missing_values') or {}).values()),
+                        0
+                    )
+                    format_errors = len(mod_result.get('format_errors', []))
+                    gap_count = (mod_result.get('sampling_stats') or {}).get('gap_count', 0)
+                    sampling_freq = (mod_result.get('sampling_stats') or {}).get('sampling_frequency', '')
+                    
+                    writer.writerow([
+                        user.get('user_id', ''),
+                        user.get('email', ''),
+                        user.get('type', ''),
+                        device.get('device_id', ''),
+                        modality,
+                        mod_result.get('has_data', False),
+                        mod_result.get('total_rows', 0),
+                        missing_count,
+                        format_errors,
+                        mod_result.get('format_valid', True),
+                        gap_count,
+                        sampling_freq
+                    ])
+        
+        csv_data = output.getvalue()
+        output.close()
+        
+        # Return as download
+        response = Response(
+            csv_data,
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename=validation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
+        )
+        return response
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/validation/trigger', methods=['POST'])
+@requires_auth
 def trigger_validation():
-    """Manually trigger a validation run"""
+    """Trigger validation run"""
     try:
+        with _validation_lock:
+            if _validation_running:
+                return jsonify({'error': 'Validation is already running'}), 400
+            
+            _validation_running = True
+        
         # Run validation in background thread
-        threading.Thread(target=run_validation_job, daemon=True).start()
-        return jsonify({
-            'message': 'Validation job started in background',
-            'status': 'running'
-        }), 202
+        def run_validation_background():
+            try:
+                run_validation(days_back=7, max_workers=4)
+            except Exception as e:
+                print(f"Validation error: {e}")
+            finally:
+                with _validation_lock:
+                    global _validation_running
+                    _validation_running = False
+        
+        thread = threading.Thread(target=run_validation_background, daemon=True)
+        thread.start()
+        
+        return jsonify({'message': 'Validation started'}), 200
     except Exception as e:
-        return jsonify({'error': f'Failed to start validation: {str(e)}'}), 500
-
-@app.route('/health', methods=['GET'])
-def health():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy'}), 200
-
-@app.route('/admin', methods=['GET'])
-def admin_page():
-    """Admin page for exporting user data"""
-    return render_template('admin.html')
+        with _validation_lock:
+            _validation_running = False
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/', methods=['GET'])
 def index():
@@ -396,10 +381,6 @@ def index():
     return jsonify({
         'message': 'LemurDX Data Export API',
         'endpoints': {
-            '/admin': {
-                'methods': ['GET'],
-                'description': 'Admin page for exporting user data'
-            },
             '/export': {
                 'methods': ['GET', 'POST'],
                 'description': 'Export sensor data to CSV',
@@ -419,14 +400,6 @@ def index():
                         'end_time': '2025-08-26 23:59:59'
                     }
                 }
-            },
-            '/users': {
-                'methods': ['GET'],
-                'description': 'List all users from the database'
-            },
-            '/api/user/<user_id>/devices': {
-                'methods': ['GET'],
-                'description': 'Get all devices for a specific user'
             },
             '/health': {
                 'methods': ['GET'],

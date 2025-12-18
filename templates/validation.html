@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Validation - LemurDX Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: #f0f0f0;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .validation-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        .validation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .validation-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .last-run {
+            font-size: 12px;
+            color: #666;
+        }
+        .scheduler-info {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .trigger-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .trigger-btn:hover {
+            background: #218838;
+        }
+        .trigger-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .user-status {
+            margin-bottom: 15px;
+        }
+        .user-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        .user-header {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .device-item {
+            margin-left: 20px;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .modality-status {
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            white-space: pre-line;
+        }
+        .status-ok {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-no-data {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        .validation-details {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .no-validation {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔍 Data Validation</h1>
+                <p class="subtitle">View validation results, check data quality, and run validation checks</p>
+            </div>
+            <a href="/admin" class="back-link">← Back to Admin</a>
+        </div>
+        
+        <!-- Validation Status Section -->
+        <div class="validation-section">
+            <div class="validation-header">
+                <div>
+                    <div class="validation-title">🔍 Data Validation Status</div>
+                    <div class="scheduler-info" id="schedulerInfo">Loading scheduler info...</div>
+                </div>
+                <div>
+                    <div class="last-run" id="lastRun">Loading...</div>
+                    <button class="trigger-btn" id="triggerBtn" onclick="triggerValidation()">Run Now</button>
+                    <button class="trigger-btn" id="downloadBtn" onclick="downloadValidationCSV()" style="background: #007bff; margin-left: 5px;">Download CSV</button>
+                </div>
+            </div>
+            <div id="validationContent" class="no-validation">Loading validation results...</div>
+        </div>
+        
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+    </div>
+    
+    <script>
+        // Load validation results on page load
+        let pollStartTime = null;
+        let isPolling = false;
+        
+        function loadValidationResults() {
+            fetch('/api/validation-results', {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (response.status === 202) {
+                        // Validation is running - show partial results if available
+                        return response.json().then(data => {
+                            if (pollStartTime === null) {
+                                pollStartTime = Date.now();
+                            }
+                            
+                            // Always display partial results if available
+                            if (data.users && data.users.length > 0) {
+                                displayValidationResults(data);
+                                const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
+                                document.getElementById('lastRun').textContent = 
+                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
+                            } else {
+                                document.getElementById('validationContent').innerHTML = 
+                                    '<div class="no-validation">Validation is running... Waiting for first results.</div>';
+                                const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
+                                document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
+                            }
+                            
+                            // Continue polling to auto-update
+                            isPolling = true;
+                            setTimeout(() => pollValidationResults(0), 5000);
+                            return null;
+                        });
+                    } else if (response.status === 404) {
+                        return response.json().then(data => {
+                            let message = data.message || 'No validation results found. Click "Run Now" to start validation.';
+                            if (data.last_error) {
+                                message += `<br><strong>Last error:</strong> ${data.last_error}`;
+                            }
+                            document.getElementById('validationContent').innerHTML = 
+                                `<div class="no-validation">${message}</div>`;
+                            
+                            if (data.last_run) {
+                                const lastRunDate = new Date(data.last_run);
+                                document.getElementById('lastRun').textContent = 
+                                    `Last run: ${lastRunDate.toLocaleString()}`;
+                            } else {
+                                document.getElementById('lastRun').textContent = 'Never run';
+                            }
+                            
+                            // Update scheduler info if available
+                            if (data.scheduler) {
+                                let schedulerText = `Auto-validation: Enabled (checks ${data.scheduler.days_back} days back, ${data.scheduler.max_workers} workers)`;
+                                if (data.scheduler.next_run) {
+                                    const nextRunDate = new Date(data.scheduler.next_run);
+                                    schedulerText += ` • Next run: ${nextRunDate.toLocaleString()}`;
+                                }
+                                document.getElementById('schedulerInfo').textContent = schedulerText;
+                            }
+                            
+                            return null;
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) {
+                        document.getElementById('schedulerInfo').textContent = 'Auto-validation: Enabled (checks 7 days back)';
+                        return;
+                    }
+                    
+                    displayValidationResults(data);
+                })
+                .catch(error => {
+                    document.getElementById('validationContent').innerHTML = 
+                        '<div class="no-validation">Error loading validation results: ' + error.message + '</div>';
+                    document.getElementById('lastRun').textContent = 'Error';
+                    document.getElementById('schedulerInfo').textContent = 'Auto-validation: Enabled';
+                });
+        }
+        
+        // Function to display validation results
+        function displayValidationResults(data) {
+            // Update last run time
+            if (data.last_run) {
+                const lastRunDate = new Date(data.last_run);
+                document.getElementById('lastRun').textContent = 
+                    `Last run: ${lastRunDate.toLocaleString()}${data.partial ? ' (partial)' : ''}`;
+            } else {
+                document.getElementById('lastRun').textContent = 'Never run';
+            }
+            
+            // Update scheduler info
+            if (data.scheduler) {
+                let schedulerText = `Auto-validation: Enabled (checks ${data.scheduler.days_back} days back, ${data.scheduler.max_workers || 4} workers)`;
+                if (data.scheduler.next_run) {
+                    const nextRunDate = new Date(data.scheduler.next_run);
+                    schedulerText += ` • Next run: ${nextRunDate.toLocaleString()}`;
+                }
+                document.getElementById('schedulerInfo').textContent = schedulerText;
+            } else {
+                document.getElementById('schedulerInfo').textContent = 'Auto-validation: Not configured';
+            }
+            
+            // Display validation results
+            let html = '';
+            
+            // Show date ranges checked from history
+            const history = data.history || {};
+            
+            if (data.users && data.users.length > 0) {
+                data.users.forEach(user => {
+                    html += `<div class="user-item">`;
+                    html += `<div class="user-header">${user.email} (${user.type})</div>`;
+                    
+                    // Show accumulated date ranges checked for this user
+                    const userHistory = history[String(user.user_id)];
+                    if (userHistory && userHistory.date_ranges_checked && userHistory.date_ranges_checked.length > 0) {
+                        html += `<div style="font-size: 11px; color: #666; margin-bottom: 8px;">`;
+                        html += `<strong>Date ranges checked (${userHistory.date_ranges_checked.length} total):</strong> `;
+                        const ranges = userHistory.date_ranges_checked.slice(-5); // Show last 5
+                        ranges.forEach((range, idx) => {
+                            if (idx > 0) html += ', ';
+                            const start = new Date(range.start).toLocaleDateString();
+                            const end = new Date(range.end).toLocaleDateString();
+                            html += `${start} to ${end}`;
+                        });
+                        if (userHistory.date_ranges_checked.length > 5) {
+                            html += ` (+${userHistory.date_ranges_checked.length - 5} more)`;
+                        }
+                        html += `</div>`;
+                    }
+                    
+                    if (user.devices && user.devices.length > 0) {
+                        user.devices.forEach(device => {
+                            html += `<div class="device-item">`;
+                            html += `<strong>Device ${device.device_id}:</strong><br>`;
+                            
+                            Object.keys(device.modalities || {}).forEach(modality => {
+                                const modResult = device.modalities[modality];
+                                let statusClass = 'status-no-data';
+                                let statusText = '';
+                                let details = '';
+                                let displayText = '';
+                                
+                                if (modResult.has_data) {
+                                    const missingValues = modResult.missing_values || {};
+                                    const missingCount = Object.keys(missingValues).length;
+                                    const formatErrors = (modResult.format_errors || []).length;
+                                    const formatValid = modResult.format_valid !== false;
+                                    const samplingStats = modResult.sampling_stats || {};
+                                    const totalRows = modResult.total_rows || 0;
+                                    
+                                    // Calculate total missing value count
+                                    let totalMissingValues = 0;
+                                    let missingDetails = [];
+                                    Object.keys(missingValues).forEach(field => {
+                                        const missingInfo = missingValues[field];
+                                        totalMissingValues += missingInfo.count || 0;
+                                        missingDetails.push(`${field}: ${missingInfo.count} (${missingInfo.percentage.toFixed(1)}%)`);
+                                    });
+                                    
+                                    // Build comprehensive display text with clear labels
+                                    const parts = [];
+                                    
+                                    // Status icon and basic status
+                                    if (!formatValid) {
+                                        statusClass = 'status-error';
+                                        statusText = '✗ Format Invalid';
+                                    } else if (formatErrors > 0) {
+                                        statusClass = 'status-error';
+                                        statusText = '✗ Format Errors';
+                                    } else if (samplingStats.gap_count > 0 && samplingStats.gap_count > totalRows * 0.1) {
+                                        statusClass = 'status-warning';
+                                        statusText = '⚠ Data Gaps';
+                                    } else if (totalMissingValues > 0) {
+                                        statusClass = 'status-warning';
+                                        statusText = '⚠ Missing Values';
+                                    } else {
+                                        statusClass = 'status-ok';
+                                        statusText = '✓ OK';
+                                    }
+                                    
+                                    // Add data points count with clear label
+                                    parts.push(`Data points: ${totalRows.toLocaleString()}`);
+                                    
+                                    // Add missing values info with clear explanation
+                                    if (totalMissingValues > 0) {
+                                        const missingPct = ((totalMissingValues / totalRows) * 100).toFixed(1);
+                                        parts.push(`Missing values: ${totalMissingValues.toLocaleString()} (${missingPct}%)`);
+                                    } else {
+                                        parts.push('Missing values: None');
+                                    }
+                                    
+                                    // Add gap information with clear explanation
+                                    if (samplingStats.gap_count > 0) {
+                                        let gapText = `Data gaps: ${samplingStats.gap_count} interruption${samplingStats.gap_count !== 1 ? 's' : ''}`;
+                                        if (samplingStats.total_gap_time_formatted) {
+                                            gapText += ` (${samplingStats.total_gap_time_formatted} missing)`;
+                                        }
+                                        parts.push(gapText);
+                                    } else {
+                                        parts.push('Data gaps: None');
+                                    }
+                                    
+                                    // Add sampling frequency with clear explanation
+                                    if (samplingStats.sampling_frequency !== null && samplingStats.sampling_frequency !== undefined) {
+                                        const freq = samplingStats.sampling_frequency;
+                                        if (freq >= 1) {
+                                            parts.push(`Sampling rate: ${freq.toFixed(2)} Hz (${(1/freq).toFixed(2)}s between samples)`);
+                                        } else {
+                                            const period = (1/freq);
+                                            parts.push(`Sampling rate: ${period.toFixed(1)}s between samples (${freq.toFixed(4)} Hz)`);
+                                        }
+                                    }
+                                    
+                                    // Build detailed tooltip first (before adding format errors)
+                                    details = `Total: ${totalRows.toLocaleString()} data points`;
+                                    if (modResult.date_range) {
+                                        const startDate = new Date(modResult.date_range.min);
+                                        const endDate = new Date(modResult.date_range.max);
+                                        const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+                                        details += `\nDate range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} (${daysDiff} days)`;
+                                    }
+                                    if (samplingStats.sampling_frequency !== null && samplingStats.sampling_frequency !== undefined) {
+                                        const freq = samplingStats.sampling_frequency;
+                                        details += `\nSampling rate: ${freq >= 1 ? freq.toFixed(2) + ' Hz' : (1/freq).toFixed(1) + 's between samples'}`;
+                                    }
+                                    if (totalMissingValues > 0) {
+                                        details += `\n\nMissing Values:\n${missingDetails.join('\n')}`;
+                                    }
+                                    if (samplingStats.gap_count > 0) {
+                                        details += `\n\nData Gaps: ${samplingStats.gap_count} interruption${samplingStats.gap_count !== 1 ? 's' : ''}`;
+                                        details += `\nTotal missing time: ${samplingStats.total_gap_time_formatted || 'unknown'}`;
+                                        if (modResult.date_range) {
+                                            const startDate = new Date(modResult.date_range.min);
+                                            const endDate = new Date(modResult.date_range.max);
+                                            const totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                                            const gapDays = samplingStats.total_gap_time ? samplingStats.total_gap_time / (60 * 60 * 24) : 0;
+                                            const coveragePct = totalDays > 0 ? ((totalDays - gapDays) / totalDays * 100).toFixed(1) : 0;
+                                            details += `\nData coverage: ${coveragePct}%`;
+                                        }
+                                    }
+                                    
+                                    // Add format errors prominently with details
+                                    if (formatErrors > 0) {
+                                        const formatErrorDetails = [];
+                                        const formatErrorsList = modResult.format_errors || [];
+                                        
+                                        // Group errors by field and error type
+                                        const errorTypes = {};
+                                        formatErrorsList.slice(0, 20).forEach(err => { // Show first 20 errors
+                                            const field = err.field || 'unknown';
+                                            const errorMsgs = err.errors || [];
+                                            if (!errorTypes[field]) {
+                                                errorTypes[field] = [];
+                                            }
+                                            errorMsgs.forEach(msg => {
+                                                if (!errorTypes[field].includes(msg)) {
+                                                    errorTypes[field].push(msg);
+                                                }
+                                            });
+                                        });
+                                        
+                                        Object.keys(errorTypes).forEach(field => {
+                                            const uniqueErrors = errorTypes[field];
+                                            formatErrorDetails.push(`${field}: ${uniqueErrors.join('; ')}`);
+                                        });
+                                        
+                                        if (formatErrors > 20) {
+                                            formatErrorDetails.push(`... and ${formatErrors - 20} more errors`);
+                                        }
+                                        
+                                        parts.push(`Format errors: ${formatErrors} problem${formatErrors !== 1 ? 's' : ''} found`);
+                                        
+                                        // Add format error details to tooltip
+                                        details += `\n\nFormat Errors (${formatErrors} total):\n${formatErrorDetails.join('\n')}`;
+                                    }
+                                    
+                                    // Build the full display text
+                                    displayText = `${modality.replace('_', ' ')}: ${statusText}`;
+                                    if (parts.length > 0) {
+                                        displayText += '\n' + parts.join('\n');
+                                    }
+                                } else {
+                                    statusClass = 'status-error';
+                                    statusText = '✗ Error';
+                                    displayText = `${modality.replace('_', ' ')}: ${statusText}`;
+                                    if (modResult.error) {
+                                        // Show full error message
+                                        details = `Error: ${modResult.error}`;
+                                        displayText += `\nError: ${modResult.error}`;
+                                    } else if (modResult.date_range) {
+                                        const startDate = new Date(modResult.date_range.min);
+                                        const endDate = new Date(modResult.date_range.max);
+                                        details = `Date range checked: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+                                        displayText += `\nRange: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+                                    } else {
+                                        statusText = 'No Data';
+                                        displayText = `${modality.replace('_', ' ')}: ${statusText}`;
+                                    }
+                                }
+                                
+                                html += `<span class="modality-status ${statusClass}" title="${details}">`;
+                                html += displayText;
+                                html += `</span>`;
+                            });
+                            
+                            html += `</div>`;
+                        });
+                    } else {
+                        html += `<div class="device-item">No devices found</div>`;
+                    }
+                    
+                    html += `</div>`;
+                });
+            } else {
+                html = '<div class="no-validation">No users found in validation results</div>';
+            }
+            
+            document.getElementById('validationContent').innerHTML = html;
+        }
+        
+        // Trigger validation manually
+        function triggerValidation() {
+            const btn = document.getElementById('triggerBtn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+            pollStartTime = Date.now(); // Reset polling timer
+            isPolling = true;
+            
+            fetch('/api/validation/trigger', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    showSuccess('Validation started! Results will appear as they complete...');
+                    btn.textContent = 'Running...';
+                    // Start polling immediately to show results as they come in
+                    setTimeout(() => pollValidationResults(0), 2000);
+                } else {
+                    showError('Failed to start validation: ' + (data.error || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.textContent = 'Run Now';
+                    isPolling = false;
+                }
+            })
+            .catch(error => {
+                showError('Failed to trigger validation: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Run Now';
+                isPolling = false;
+            });
+        }
+        
+        // Download validation results as CSV
+        function downloadValidationCSV() {
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Downloading...';
+            
+            fetch('/api/validation-results/csv', {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to download CSV');
+                        });
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `validation_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showSuccess('CSV downloaded successfully!');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                })
+                .catch(error => {
+                    showError('Failed to download CSV: ' + error.message);
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                });
+        }
+        
+        // Poll for validation results until they're ready, auto-updating display
+        function pollValidationResults(pollCount = 0) {
+            const maxPolls = 120; // Poll for up to 120 times (10 minutes max)
+            const pollInterval = 5000; // Poll every 5 seconds
+            
+            if (pollStartTime === null) {
+                pollStartTime = Date.now();
+            }
+            
+            if (pollCount >= maxPolls) {
+                showError('Validation is taking too long. Please check server logs.');
+                document.getElementById('triggerBtn').disabled = false;
+                document.getElementById('triggerBtn').textContent = 'Run Now';
+                pollStartTime = null;
+                isPolling = false;
+                return;
+            }
+            
+            fetch('/api/validation-results', {
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (response.status === 202) {
+                        // Still running - get partial results and update display
+                        return response.json().then(data => {
+                            const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
+                            const btn = document.getElementById('triggerBtn');
+                            btn.textContent = `Running... (${elapsedSeconds}s)`;
+                            
+                            // Always display partial results if available
+                            if (data.users && data.users.length > 0) {
+                                displayValidationResults(data);
+                                document.getElementById('lastRun').textContent = 
+                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
+                            } else {
+                                document.getElementById('validationContent').innerHTML = 
+                                    '<div class="no-validation">Validation is running... Waiting for first results.</div>';
+                                document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
+                            }
+                            
+                            // Continue polling to get updates
+                            setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
+                            return null;
+                        });
+                    } else if (response.status === 404) {
+                        // No results yet, keep polling
+                        const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
+                        document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
+                        setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
+                        return null;
+                    } else if (response.ok) {
+                        // Results ready - validation completed
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to fetch validation results');
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        // Check if validation is still running
+                        if (data.is_running === true || data.status === 'running') {
+                            // Still running, display partial results and continue polling
+                            const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
+                            if (data.users && data.users.length > 0) {
+                                displayValidationResults(data);
+                                document.getElementById('lastRun').textContent = 
+                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
+                            }
+                            setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
+                        } else {
+                            // Validation completed
+                            showSuccess('Validation completed!');
+                            document.getElementById('triggerBtn').disabled = false;
+                            document.getElementById('triggerBtn').textContent = 'Run Now';
+                            pollStartTime = null;
+                            isPolling = false;
+                            // Display final results
+                            displayValidationResults(data);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error polling validation results:', error);
+                    setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
+                });
+        }
+        
+        // Load validation results on page load
+        loadValidationResults();
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
