@@ -1,0 +1,18 @@
+[Unit]
+Description=Gunicorn instance to serve LemurDX Data Check dashboard
+After=network.target
+
+[Service]
+User=shreya
+Group=www-data
+WorkingDirectory=/home/shreya/lemurdx-data-check
+EnvironmentFile=/home/shreya/lemurdx-data-check/.env
+Environment="PATH=/home/shreya/miniconda3/envs/lemurdx-data/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="URL_PREFIX=/lemurdx-dashboard-data"
+ExecStart=/home/shreya/miniconda3/envs/lemurdx-data/bin/gunicorn --workers 3 --bind 127.0.0.1:5008 wsgi:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+

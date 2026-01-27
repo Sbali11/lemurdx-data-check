@@ -931,11 +931,16 @@ def validate_single_user(user_info, config, history, run_timestamp, results_file
     user_id = user_info['user_id']
     email = user_info['email']
     devices = user_info['devices']
-    
+
     print(f"[Thread] Validating data for user {email} (ID: {user_id})", flush=True)
-    
+
     # Create Timestream client for this thread (longer timeout for large queries)
-    ts_query_client = boto3.client('timestream-query', config=Config(read_timeout=300, retries={'max_attempts': 3}))
+    ts_config = Config(
+        region_name=os.environ.get('AWS_REGION', 'us-east-1'),
+        read_timeout=300,
+        retries={'max_attempts': 3}
+    )
+    ts_query_client = boto3.client('timestream-query', config=ts_config)
     
     user_result = {
         'user_id': user_id,

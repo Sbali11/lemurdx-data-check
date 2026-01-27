@@ -139,7 +139,7 @@
                 <h1>📥 Export Data</h1>
                 <p class="subtitle">Select a user, device, date range, and measure type to export data</p>
             </div>
-            <a href="/admin" class="back-link">← Back to Admin</a>
+            <a href="{{ url_for('admin_page') }}" class="back-link">← Back to Admin</a>
         </div>
         
         <form id="exportForm">
@@ -195,8 +195,9 @@
     </div>
     
     <script>
+        const BASE_URL = "{{ request.script_root }}";
         // Load users on page load
-        fetch('/users', {
+        fetch(BASE_URL + '/users', {
             credentials: 'include'
         })
             .then(response => response.json())
@@ -229,7 +230,7 @@
             deviceSelect.disabled = true;
             deviceSelect.innerHTML = '<option value="">Loading devices...</option>';
             
-            fetch(`/api/user/${userId}/devices`, {
+            fetch(`${BASE_URL}/api/user/${userId}/devices`, {
                 credentials: 'include'
             })
                 .then(response => response.json())
@@ -288,7 +289,7 @@
             
             dateRangeInfo.textContent = 'Loading available date range...';
             
-            fetch(`/api/date-range?device_id=${encodeURIComponent(deviceId)}&measure_name=${encodeURIComponent(measureName)}`, {
+            fetch(`${BASE_URL}/api/date-range?device_id=${encodeURIComponent(deviceId)}&measure_name=${encodeURIComponent(measureName)}`, {
                 credentials: 'include'
             })
                 .then(response => {
@@ -402,7 +403,7 @@
             document.getElementById('exportBtn').disabled = true;
             
             // Make request to export endpoint
-            fetch(`/export?${params.toString()}`, {
+            fetch(`${BASE_URL}/export?${params.toString()}`, {
                 method: 'GET',
                 credentials: 'include'
             })

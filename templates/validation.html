@@ -178,7 +178,7 @@
                 <h1>🔍 Data Validation</h1>
                 <p class="subtitle">View validation results, check data quality, and run validation checks</p>
             </div>
-            <a href="/admin" class="back-link">← Back to Admin</a>
+            <a href="{{ url_for('admin_page') }}" class="back-link">← Back to Admin</a>
         </div>
         
         <!-- Validation Status Section -->
@@ -204,10 +204,11 @@
     <script>
         // Load validation results on page load
         let pollStartTime = null;
+        const BASE_URL = "{{ request.script_root }}";
         let isPolling = false;
         
         function loadValidationResults() {
-            fetch('/api/validation-results', {
+            fetch(BASE_URL + '/api/validation-results', {
                 credentials: 'include'
             })
                 .then(response => {
@@ -534,7 +535,7 @@
             pollStartTime = Date.now(); // Reset polling timer
             isPolling = true;
             
-            fetch('/api/validation/trigger', {
+            fetch(BASE_URL + '/api/validation/trigger', {
                 method: 'POST',
                 credentials: 'include'
             })
@@ -567,7 +568,7 @@
             btn.disabled = true;
             btn.textContent = 'Downloading...';
             
-            fetch('/api/validation-results/csv', {
+            fetch(BASE_URL + '/api/validation-results/csv', {
                 credentials: 'include'
             })
                 .then(response => {
@@ -617,7 +618,7 @@
                 return;
             }
             
-            fetch('/api/validation-results', {
+            fetch(BASE_URL + '/api/validation-results', {
                 credentials: 'include'
             })
                 .then(response => {

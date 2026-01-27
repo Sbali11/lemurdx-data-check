@@ -7,7 +7,10 @@ import csv
 from io import StringIO
 from export import export_sensor_data_to_csv, load_all_config, get_db_connection, get_timestream_date_range, get_postgres_label_date_range
 from validate_data import get_all_users_with_devices, load_validation_results, run_validation
-from datetime import datetime
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import atexit
 
 app = Flask(__name__)
 
@@ -18,6 +21,57 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')  # Change this in production!
 # Track if validation is running
 _validation_lock = threading.Lock()
 _validation_running = False
+
+# Scheduler configuration
+VALIDATION_SCHEDULE_HOUR = int(os.environ.get('VALIDATION_SCHEDULE_HOUR', '2'))  # Default: 2 AM
+VALIDATION_SCHEDULE_MINUTE = int(os.environ.get('VALIDATION_SCHEDULE_MINUTE', '0'))  # Default: 0 minutes
+VALIDATION_DAYS_BACK = int(os.environ.get('VALIDATION_DAYS_BACK', '7'))  # Default: 7 days
+VALIDATION_MAX_WORKERS = int(os.environ.get('VALIDATION_MAX_WORKERS', '4'))  # Default: 4 workers
+VALIDATION_ENABLED = os.environ.get('VALIDATION_ENABLED', 'true').lower() == 'true'  # Default: enabled
+
+# Initialize scheduler
+scheduler = BackgroundScheduler(daemon=True)
+
+def scheduled_validation():
+    """Run scheduled validation (called by scheduler)"""
+    global _validation_running
+
+    print(f"[Scheduler] Starting scheduled validation at {datetime.now()}")
+
+    with _validation_lock:
+        if _validation_running:
+            print("[Scheduler] Validation already running, skipping scheduled run")
+            return
+        _validation_running = True
+
+    try:
+        run_validation(days_back=VALIDATION_DAYS_BACK, max_workers=VALIDATION_MAX_WORKERS)
+        print(f"[Scheduler] Scheduled validation completed successfully at {datetime.now()}")
+    except Exception as e:
+        print(f"[Scheduler] Scheduled validation failed: {e}")
+    finally:
+        with _validation_lock:
+            _validation_running = False
+
+# Add scheduled job if validation is enabled
+if VALIDATION_ENABLED:
+    trigger = CronTrigger(hour=VALIDATION_SCHEDULE_HOUR, minute=VALIDATION_SCHEDULE_MINUTE)
+    scheduler.add_job(
+        func=scheduled_validation,
+        trigger=trigger,
+        id='daily_validation',
+        name='Daily Data Validation',
+        replace_existing=True
+    )
+    print(f"[Scheduler] Validation scheduled daily at {VALIDATION_SCHEDULE_HOUR:02d}:{VALIDATION_SCHEDULE_MINUTE:02d}")
+else:
+    print("[Scheduler] Automatic validation is disabled")
+
+# Start the scheduler
+scheduler.start()
+
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
 
 def check_auth(username, password):
     """Check if username and password are correct"""
@@ -249,36 +303,57 @@ def get_validation_results():
     """Get validation results"""
     try:
         results = load_validation_results()
-        
+
+        # Get scheduler information
+        scheduler_info = {
+            'enabled': VALIDATION_ENABLED,
+            'days_back': VALIDATION_DAYS_BACK,
+            'max_workers': VALIDATION_MAX_WORKERS
+        }
+
+        if VALIDATION_ENABLED:
+            # Get next run time
+            job = scheduler.get_job('daily_validation')
+            if job:
+                next_run = job.next_run_time
+                if next_run:
+                    scheduler_info['next_run'] = next_run.isoformat()
+                scheduler_info['schedule'] = f"Daily at {VALIDATION_SCHEDULE_HOUR:02d}:{VALIDATION_SCHEDULE_MINUTE:02d}"
+
         if results is None:
             # Check if validation is running
             with _validation_lock:
                 is_running = _validation_running
-            
+
             if is_running:
                 return jsonify({
                     'is_running': True,
                     'status': 'running',
                     'users': [],
-                    'message': 'Validation is running...'
+                    'message': 'Validation is running...',
+                    'scheduler': scheduler_info
                 }), 202
-            
+
             return jsonify({
                 'message': 'No validation results found. Click "Run Now" to start validation.',
-                'last_run': None
+                'last_run': None,
+                'scheduler': scheduler_info
             }), 404
-        
+
         # Check if validation is still running
         with _validation_lock:
             is_running = _validation_running
-        
+
+        # Add scheduler info to results
+        results['scheduler'] = scheduler_info
+
         if is_running:
             return jsonify({
                 'is_running': True,
                 'status': 'running',
                 **results
             }), 202
-        
+
         return jsonify(results), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -348,27 +423,29 @@ def download_validation_csv():
 @requires_auth
 def trigger_validation():
     """Trigger validation run"""
+    global _validation_running
+
     try:
         with _validation_lock:
             if _validation_running:
                 return jsonify({'error': 'Validation is already running'}), 400
-            
+
             _validation_running = True
-        
+
         # Run validation in background thread
         def run_validation_background():
+            global _validation_running
             try:
                 run_validation(days_back=7, max_workers=4)
             except Exception as e:
                 print(f"Validation error: {e}")
             finally:
                 with _validation_lock:
-                    global _validation_running
                     _validation_running = False
-        
+
         thread = threading.Thread(target=run_validation_background, daemon=True)
         thread.start()
-        
+
         return jsonify({'message': 'Validation started'}), 200
     except Exception as e:
         with _validation_lock:
@@ -409,5 +486,5 @@ def index():
     }), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5012)
 
