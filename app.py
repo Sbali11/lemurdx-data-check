@@ -4,6 +4,7 @@ import os
 import tempfile
 import threading
 import csv
+import sqlite3
 from io import StringIO
 from export import export_sensor_data_to_csv, load_all_config, get_db_connection, get_timestream_date_range, get_postgres_label_date_range
 from validate_data import get_all_users_with_devices, load_validation_results, run_validation
@@ -11,8 +12,40 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
+import time
 
 app = Flask(__name__)
+
+# Simple TTL cache for daily availability queries (avoids repeated expensive Timestream scans)
+_daily_availability_cache = {}
+_CACHE_TTL_SECONDS = 3600  # 1 hour
+
+# SQLite database for app-level settings (custom enrollment periods, etc.)
+SETTINGS_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings.db')
+
+def init_settings_db():
+    """Initialize the settings SQLite database"""
+    conn = sqlite3.connect(SETTINGS_DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS custom_enrollment_periods (
+            user_id INTEGER NOT NULL,
+            device_id TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+            PRIMARY KEY (user_id, device_id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def get_settings_db():
+    """Get a connection to the settings database"""
+    conn = sqlite3.connect(SETTINGS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+init_settings_db()
 
 # Admin credentials (can be overridden via environment variables)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
@@ -203,6 +236,18 @@ def admin_export():
 def admin_validation():
     """Admin page for data validation (password protected)"""
     return render_template('validation.html')
+
+@app.route('/admin/error-details', methods=['GET'])
+@requires_auth
+def admin_error_details():
+    """Admin page for sensor coverage error details (password protected)"""
+    return render_template('error_details.html')
+
+@app.route('/admin/participant-download', methods=['GET'])
+@requires_auth
+def admin_participant_download():
+    """Admin page for downloading participant data by sensor (password protected)"""
+    return render_template('participant_download.html')
 
 @app.route('/users', methods=['GET'])
 @requires_auth
@@ -416,6 +461,243 @@ def download_validation_csv():
             headers={'Content-Disposition': f'attachment; filename=validation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'}
         )
         return response
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/user/<int:user_id>/device/<device_id>/enrollment', methods=['GET'])
+@requires_auth
+def get_user_enrollment_period(user_id, device_id):
+    """Get the enrollment period for a specific user and device"""
+    try:
+        config = load_all_config()
+        enrollment = get_user_device_enrollment_dates(config["db"], user_id, device_id)
+
+        if not enrollment:
+            return jsonify({'error': 'No enrollment data found'}), 404
+
+        return jsonify(enrollment), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def get_user_device_enrollment_dates(db_config, user_id, device_id):
+    """Get the enrollment period for a user with a specific device from label data"""
+    try:
+        with get_db_connection(db_config) as conn:
+            with conn.cursor() as cursor:
+                # Get the date range when this user was creating labels with this device
+                query = """
+                    SELECT
+                        MIN(DATE(tl.created_at)) as start_date,
+                        MAX(DATE(COALESCE(tl.completed_at, tl.created_at))) as end_date
+                    FROM training_labels tl
+                    JOIN watches w ON w.id = tl.watch_id
+                    WHERE tl.participant_id = %s AND w.hardware_id = %s
+                """
+                cursor.execute(query, (user_id, device_id))
+                result = cursor.fetchone()
+
+                if result and result[0] and result[1]:
+                    return {
+                        'user_id': user_id,
+                        'device_id': device_id,
+                        'start_date': result[0].strftime('%Y-%m-%d'),
+                        'end_date': result[1].strftime('%Y-%m-%d')
+                    }
+                return None
+    except Exception as e:
+        print(f"Error getting user enrollment dates: {e}")
+        return None
+
+@app.route('/api/device/<device_id>/sensor/<sensor>/daily-availability', methods=['GET'])
+@requires_auth
+def get_daily_availability(device_id, sensor):
+    """Get daily data availability for a device and sensor, optionally scoped to a user's enrollment period"""
+    try:
+        config = load_all_config()
+
+        # Get date range from query params
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        user_id = request.args.get('user_id')
+
+        # If user_id is provided, get their enrollment period and use it to scope the dates
+        if user_id:
+            enrollment = get_user_device_enrollment_dates(config["db"], int(user_id), device_id)
+            if enrollment:
+                # Use enrollment dates to scope the query (intersect with provided dates)
+                if start_date:
+                    start_date = max(start_date, enrollment['start_date'])
+                else:
+                    start_date = enrollment['start_date']
+                if end_date:
+                    end_date = min(end_date, enrollment['end_date'])
+                else:
+                    end_date = enrollment['end_date']
+
+        if sensor == 'label_data':
+            # Query PostgreSQL for label data dates (can filter by user)
+            days_with_data = get_label_days_with_data(config["db"], device_id, start_date, end_date, user_id)
+        else:
+            # Query Timestream for sensor data dates
+            days_with_data = get_timestream_days_with_data(config, device_id, sensor, start_date, end_date)
+
+        return jsonify({
+            'device_id': device_id,
+            'sensor': sensor,
+            'days_with_data': days_with_data
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def get_timestream_days_with_data(config, device_id, measure_name, start_date=None, end_date=None):
+    """Query Timestream to get list of dates that have data (with TTL cache)"""
+    # Check cache first
+    cache_key = (device_id, measure_name, start_date, end_date)
+    cached = _daily_availability_cache.get(cache_key)
+    if cached and (time.time() - cached['ts']) < _CACHE_TTL_SECONDS:
+        return cached['data']
+
+    import boto3
+    from botocore.config import Config as BotoConfig
+
+    ts_config = BotoConfig(
+        region_name=os.environ.get('AWS_REGION', 'us-east-1'),
+        read_timeout=60,
+        retries={'max_attempts': 3}
+    )
+    ts_query_client = boto3.client('timestream-query', config=ts_config)
+
+    # Build query to get distinct dates with data
+    query = f"""
+        SELECT DISTINCT DATE(time) as data_date
+        FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
+        WHERE measure_name = '{measure_name}'
+          AND device_id = '{device_id}'
+    """
+
+    if start_date:
+        query += f" AND time >= TIMESTAMP '{start_date} 00:00:00'"
+    if end_date:
+        query += f" AND time <= TIMESTAMP '{end_date} 23:59:59'"
+
+    query += " ORDER BY data_date ASC"
+
+    from export import _paginate_timestream_query, parse_timestream_response
+
+    try:
+        response = _paginate_timestream_query(ts_query_client, query)
+        rows = parse_timestream_response(response)
+
+        # Extract dates as strings
+        dates = []
+        for row in rows:
+            if 'data_date' in row and row['data_date']:
+                date_str = str(row['data_date']).split(' ')[0]  # Get just the date part
+                dates.append(date_str)
+
+        # Cache the result
+        _daily_availability_cache[cache_key] = {'data': dates, 'ts': time.time()}
+        return dates
+    except Exception as e:
+        print(f"Error querying Timestream for daily availability: {e}")
+        return []
+
+def get_label_days_with_data(db_config, device_id, start_date=None, end_date=None, user_id=None):
+    """Query PostgreSQL to get list of dates that have label data, optionally filtered by user"""
+    try:
+        with get_db_connection(db_config) as conn:
+            with conn.cursor() as cursor:
+                query = """
+                    SELECT DISTINCT DATE(tl.created_at) as data_date
+                    FROM training_labels tl
+                    JOIN watches w ON w.id = tl.watch_id
+                    WHERE w.hardware_id = %s
+                """
+                params = [device_id]
+
+                # Filter by user if provided
+                if user_id:
+                    query += " AND tl.participant_id = %s"
+                    params.append(int(user_id))
+
+                if start_date:
+                    query += " AND DATE(tl.created_at) >= %s"
+                    params.append(start_date)
+                if end_date:
+                    query += " AND DATE(tl.created_at) <= %s"
+                    params.append(end_date)
+
+                query += " ORDER BY data_date ASC"
+
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+
+                return [row[0].strftime('%Y-%m-%d') for row in results if row[0]]
+    except Exception as e:
+        print(f"Error querying PostgreSQL for daily availability: {e}")
+        return []
+
+@app.route('/api/custom-enrollment', methods=['GET'])
+@requires_auth
+def get_all_custom_enrollments():
+    """Get all custom enrollment periods"""
+    try:
+        conn = get_settings_db()
+        rows = conn.execute("SELECT user_id, device_id, start_date, end_date FROM custom_enrollment_periods").fetchall()
+        conn.close()
+
+        result = {}
+        for row in rows:
+            key = f"{row['user_id']}-{row['device_id']}"
+            result[key] = {
+                'user_id': row['user_id'],
+                'device_id': row['device_id'],
+                'start_date': row['start_date'],
+                'end_date': row['end_date']
+            }
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/custom-enrollment/<int:user_id>/<device_id>', methods=['PUT'])
+@requires_auth
+def save_custom_enrollment(user_id, device_id):
+    """Save or update a custom enrollment period"""
+    try:
+        data = request.get_json()
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        if not start_date or not end_date:
+            return jsonify({'error': 'start_date and end_date are required'}), 400
+
+        conn = get_settings_db()
+        conn.execute("""
+            INSERT INTO custom_enrollment_periods (user_id, device_id, start_date, end_date, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(user_id, device_id) DO UPDATE SET
+                start_date = excluded.start_date,
+                end_date = excluded.end_date,
+                updated_at = datetime('now')
+        """, (user_id, device_id, start_date, end_date))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Custom enrollment period saved', 'user_id': user_id, 'device_id': device_id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/custom-enrollment/<int:user_id>/<device_id>', methods=['DELETE'])
+@requires_auth
+def delete_custom_enrollment(user_id, device_id):
+    """Delete a custom enrollment period (reset to original)"""
+    try:
+        conn = get_settings_db()
+        conn.execute("DELETE FROM custom_enrollment_periods WHERE user_id = ? AND device_id = ?", (user_id, device_id))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Custom enrollment period deleted'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

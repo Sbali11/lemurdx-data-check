@@ -331,7 +331,12 @@ def export_sensor_data_to_csv(device_id, output_file, measure_name, start_time=N
     if measure_name == "label_data":
         data_rows = query_postgres_label_data(config["db"], device_id, sub_measure_names)
     else:
-        ts_query_client = boto3.client('timestream-query', config=Config(read_timeout=30, retries={'max_attempts': 5}))
+        ts_config = Config(
+            region_name=os.environ.get('AWS_REGION', 'us-east-1'),
+            read_timeout=30,
+            retries={'max_attempts': 5}
+        )
+        ts_query_client = boto3.client('timestream-query', config=ts_config)
         data_rows = query_timestream_measure_data(ts_query_client, config, device_id, measure_name, sub_measure_names, start_time, end_time)
 
     if not data_rows:

@@ -72,20 +72,36 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 LemurDX Admin</h1>
-        <p class="subtitle">Welcome to the admin dashboard</p>
-        
-        <div class="nav-cards">
-            <a href="{{ url_for('admin_export') }}" class="nav-card">
-                <div class="nav-card-icon">📥</div>
-                <h2>Export Data</h2>
-                <p>Download sensor data (motion, heart rate, location, labels) for specific users, devices, and date ranges.</p>
-            </a>
+        <h1>📊 LemurDX Data Dashboard</h1>
+        <p class="subtitle">Welcome to the admin dashboard - Monitor and export sensor data</p>
 
+        <div class="nav-cards">
             <a href="{{ url_for('admin_validation') }}" class="nav-card">
                 <div class="nav-card-icon">🔍</div>
                 <h2>Data Validation</h2>
-                <p>View validation results, check data quality, run validation checks, and download validation reports.</p>
+                <p><strong>Primary Tool:</strong> Monitor data quality and completeness for all users.</p>
+                <p style="margin-top: 8px; font-size: 13px;">• View all users in a table with sensors as columns<br>• See date ranges and data status at a glance<br>• Filter by sensor type<br>• Download individual sensor data or full reports</p>
+            </a>
+
+            <a href="{{ url_for('admin_export') }}" class="nav-card">
+                <div class="nav-card-icon">📥</div>
+                <h2>Export Data</h2>
+                <p><strong>Focused Export:</strong> Download specific sensor data for individual users.</p>
+                <p style="margin-top: 8px; font-size: 13px;">• Select user, device, and sensor type<br>• Choose custom date ranges<br>• Export to CSV format<br>• View available data ranges</p>
+            </a>
+
+            <a href="{{ url_for('admin_error_details') }}" class="nav-card">
+                <div class="nav-card-icon">&#x26A0;&#xFE0F;</div>
+                <h2>Sensor Coverage Errors</h2>
+                <p><strong>Gap Analysis:</strong> Find participants where a specific sensor has fewer data days than others.</p>
+                <p style="margin-top: 8px; font-size: 13px;">• Only shows participants with custom enrollment periods<br>• Select a reference sensor to check<br>• Configurable day-difference threshold<br>• Per-sensor day counts within enrollment range</p>
+            </a>
+
+            <a href="{{ url_for('admin_participant_download') }}" class="nav-card">
+                <div class="nav-card-icon">👥</div>
+                <h2>Participant Data Download</h2>
+                <p><strong>Batch Export:</strong> Download data for multiple participants by sensor type.</p>
+                <p style="margin-top: 8px; font-size: 13px;">• Select multiple participants at once<br>• Download by sensor type<br>• Each participant gets separate CSV<br>• Includes dates in each row<br>• Filter by custom dates</p>
             </a>
         </div>
     </div>

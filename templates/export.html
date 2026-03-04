@@ -48,8 +48,26 @@
         }
         .subtitle {
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-size: 14px;
+        }
+        .info-card {
+            background: #e8f4f8;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+        .info-card-title {
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .info-card-text {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.6;
         }
         .form-group {
             margin-bottom: 25px;
@@ -137,11 +155,22 @@
         <div class="header">
             <div>
                 <h1>📥 Export Data</h1>
-                <p class="subtitle">Select a user, device, date range, and measure type to export data</p>
+                <p class="subtitle">Download sensor data for specific users, devices, and time periods</p>
             </div>
             <a href="{{ url_for('admin_page') }}" class="back-link">← Back to Admin</a>
         </div>
-        
+
+        <div class="info-card">
+            <div class="info-card-title">How to Export Data</div>
+            <div class="info-card-text">
+                1. Select a user to see their devices<br>
+                2. Choose a device and sensor type (motion, heart rate, location, or labels)<br>
+                3. The available date range will load automatically<br>
+                4. Select custom dates or leave blank to export all available data<br>
+                5. Click "Export to CSV" to download
+            </div>
+        </div>
+
         <form id="exportForm">
             <div class="form-group">
                 <label for="userId">Select User *</label>

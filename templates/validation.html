@@ -17,7 +17,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -27,13 +27,17 @@
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+            align-items: flex-start;
+            margin-bottom: 25px;
         }
-        h1 {
+        .header-left h1 {
             color: #333;
-            margin-bottom: 10px;
             font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
         }
         .back-link {
             color: #667eea;
@@ -46,47 +50,131 @@
         .back-link:hover {
             background: #f0f0f0;
         }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
+
+        /* Summary Cards */
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
         }
-        .validation-section {
-            background: #f8f9fa;
-            border-radius: 8px;
+        .summary-card {
             padding: 20px;
-            margin-bottom: 30px;
-            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .validation-header {
+        .summary-card.total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .summary-card.success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+        .summary-card.warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+        .summary-card.error {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+        .summary-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .summary-card-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        /* Controls */
+        .controls-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .controls-row {
             display: flex;
-            justify-content: space-between;
+            gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
             margin-bottom: 15px;
         }
-        .validation-title {
-            font-size: 18px;
+        .controls-row:last-child {
+            margin-bottom: 0;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 35px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .filter-label {
+            font-size: 13px;
             font-weight: 600;
-            color: #333;
-        }
-        .last-run {
-            font-size: 12px;
             color: #666;
         }
-        .scheduler-info {
-            font-size: 11px;
-            color: #666;
-            margin-top: 5px;
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .trigger-btn, .download-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
         }
         .trigger-btn {
             background: #28a745;
             color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            margin-left: 10px;
         }
         .trigger-btn:hover {
             background: #218838;
@@ -95,37 +183,82 @@
             background: #ccc;
             cursor: not-allowed;
         }
-        .user-status {
-            margin-bottom: 15px;
+        .download-btn {
+            background: #007bff;
+            color: white;
         }
-        .user-item {
+        .download-btn:hover {
+            background: #0056b3;
+        }
+        .last-run-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
             background: white;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
         }
-        .user-header {
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        th.sensor-column {
+            text-align: center;
+            min-width: 180px;
+        }
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .user-cell {
             font-weight: 600;
             color: #333;
-            margin-bottom: 8px;
         }
-        .device-item {
-            margin-left: 20px;
-            margin-top: 8px;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-        .modality-status {
-            display: block;
-            padding: 8px 12px;
-            border-radius: 4px;
+        .email-cell {
+            color: #666;
             font-size: 12px;
-            margin-bottom: 8px;
-            line-height: 1.6;
-            word-wrap: break-word;
-            white-space: pre-line;
+        }
+        .device-cell {
+            color: #666;
+            font-family: monospace;
+        }
+        .sensor-cell {
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 5px;
+            min-width: 90px;
         }
         .status-ok {
             background: #d4edda;
@@ -143,398 +276,1266 @@
             background: #e2e3e5;
             color: #383d41;
         }
-        .validation-details {
-            font-size: 11px;
+        .sensor-details {
+            font-size: 10px;
             color: #666;
-            margin-top: 4px;
+            margin-top: 3px;
+            line-height: 1.4;
+        }
+        .date-range {
+            font-size: 10px;
+            color: #999;
+            margin-top: 3px;
+        }
+        .download-sensor-btn {
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: background 0.2s;
+        }
+        .coverage-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .coverage-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        .coverage-high {
+            background: #28a745;
+        }
+        .coverage-medium {
+            background: #ffc107;
+        }
+        .coverage-low {
+            background: #dc3545;
+        }
+        .download-sensor-btn:hover {
+            background: #5568d3;
+        }
+        .download-sensor-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
         .no-validation {
             text-align: center;
+            padding: 60px 20px;
             color: #666;
-            padding: 20px;
+        }
+        .error, .success {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
         }
         .error {
             background: #fee;
             color: #c33;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 15px;
-            display: none;
         }
         .success {
             background: #efe;
             color: #3c3;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 15px;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Help tooltip */
+        .help-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 11px;
+            cursor: help;
+            margin-left: 5px;
+            position: relative;
+        }
+        .help-icon:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        .help-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.6;
+            min-width: 280px;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: opacity 0.3s, visibility 0.3s;
+            font-weight: normal;
+            text-transform: none;
+            letter-spacing: normal;
+            text-align: left;
+            white-space: normal;
+        }
+        .help-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: #333;
+        }
+        .help-icon:hover .help-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip-status {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .tooltip-status:first-child {
+            margin-top: 0;
+        }
+        .tooltip-badge {
+            position: absolute;
+            left: 0;
+            top: 2px;
+        }
+
+        /* Legend section */
+        .legend-section {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+        .legend-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .legend-items {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #555;
+        }
+        .legend-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        /* Column filters and sort */
+        .column-filter {
+            margin-top: 5px;
+            padding: 3px 6px;
+            font-size: 10px;
+            border: 1px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: normal;
+        }
+        .column-filter:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .sort-button {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 5px;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: normal;
+        }
+        .sort-button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .sort-button.active {
+            background: rgba(255,255,255,0.3);
+            border-color: white;
+        }
+
+        /* Expandable row styles */
+        .expandable-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .expandable-row:hover {
+            background: #f0f4ff !important;
+        }
+        .expandable-row.expanded {
+            background: #f8f9ff !important;
+        }
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+        .expandable-row.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+        .expanded-content {
             display: none;
+            background: #f8f9fa;
+        }
+        .expanded-content.show {
+            display: table-row;
+        }
+        .expanded-content td {
+            padding: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        .sensor-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .sensor-calendar-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .sensor-calendar-card h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sensor-calendar-card .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .sensor-calendar-card .status-indicator.has-data {
+            background: #28a745;
+        }
+        .sensor-calendar-card .status-indicator.no-data {
+            background: #dc3545;
+        }
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .calendar-month {
+            margin-bottom: 10px;
+        }
+        .calendar-month-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .calendar-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+        .calendar-day {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            font-size: 0;
+            position: relative;
+        }
+        .calendar-day.has-data {
+            background: #28a745;
+        }
+        .calendar-day.no-data {
+            background: #e9ecef;
+        }
+        .calendar-day.missing {
+            background: #dc3545;
+        }
+        .calendar-day:hover::after {
+            content: attr(data-date);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            z-index: 100;
+        }
+        .calendar-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+        }
+        .calendar-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .calendar-legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .calendar-legend-box.has-data {
+            background: #28a745;
+        }
+        .calendar-legend-box.missing {
+            background: #dc3545;
+        }
+        .calendar-legend-box.no-data {
+            background: #e9ecef;
+        }
+        .calendar-stats {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 11px;
+            color: #666;
+        }
+        .loading-calendar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div>
-                <h1>🔍 Data Validation</h1>
-                <p class="subtitle">View validation results, check data quality, and run validation checks</p>
+            <div class="header-left">
+                <h1>Data Validation Dashboard</h1>
+                <p class="subtitle">Monitor data quality and completeness for all users and sensors</p>
             </div>
             <a href="{{ url_for('admin_page') }}" class="back-link">← Back to Admin</a>
         </div>
-        
-        <!-- Validation Status Section -->
-        <div class="validation-section">
-            <div class="validation-header">
-                <div>
-                    <div class="validation-title">🔍 Data Validation Status</div>
-                    <div class="scheduler-info" id="schedulerInfo">Loading scheduler info...</div>
+
+        <!-- Summary Cards -->
+        <div class="summary-section" id="summarySection">
+            <div class="summary-card total">
+                <div class="summary-card-value" id="totalUsers">-</div>
+                <div class="summary-card-label">Total Users</div>
+            </div>
+            <div class="summary-card success">
+                <div class="summary-card-value" id="healthyCount">-</div>
+                <div class="summary-card-label">Healthy</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-card-value" id="warningCount">-</div>
+                <div class="summary-card-label">Warnings</div>
+            </div>
+            <div class="summary-card error">
+                <div class="summary-card-value" id="errorCount">-</div>
+                <div class="summary-card-label">Issues</div>
+            </div>
+        </div>
+
+        <!-- Status Legend -->
+        <div class="legend-section">
+            <div class="legend-title">📋 Status Badges</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-badge status-ok">✓ OK</span>
+                    <span>Good data quality AND ≥50% collection rate</span>
                 </div>
-                <div>
-                    <div class="last-run" id="lastRun">Loading...</div>
-                    <button class="trigger-btn" id="triggerBtn" onclick="triggerValidation()">Run Now</button>
-                    <button class="trigger-btn" id="downloadBtn" onclick="downloadValidationCSV()" style="background: #007bff; margin-left: 5px;">Download CSV</button>
+                <div class="legend-item">
+                    <span class="legend-badge status-warning">⚠ Warning</span>
+                    <span>Quality issues (missing values >5%) OR sparse data (<50% collection rate)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge status-error">✗ Error</span>
+                    <span>No data or format errors</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-badge status-no-data">No Data</span>
+                    <span>Sensor not available</span>
                 </div>
             </div>
-            <div id="validationContent" class="no-validation">Loading validation results...</div>
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 11px; color: #555;">
+                <strong>Collection Rate Bar:</strong> Shows data collection completeness.
+                <span style="display: inline-block; width: 30px; height: 4px; background: #28a745; margin: 0 3px; vertical-align: middle;"></span> ≥80%
+                <span style="display: inline-block; width: 30px; height: 4px; background: #ffc107; margin: 0 3px; vertical-align: middle;"></span> 50-80%
+                <span style="display: inline-block; width: 30px; height: 4px; background: #dc3545; margin: 0 3px; vertical-align: middle;"></span> <50%
+                <div style="font-size: 10px; margin-top: 5px; font-style: italic;">
+                    Toggle calculation mode above to view:<br>
+                    • Days Coverage: % of days with any data<br>
+                    • Row Completeness: % of expected total data points
+                </div>
+            </div>
         </div>
-        
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <div class="controls-row">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by user email or ID...">
+                </div>
+                <div class="action-buttons">
+                    <button class="trigger-btn" id="triggerBtn" onclick="triggerValidation()">
+                        ▶ Run Validation
+                    </button>
+                    <button class="download-btn" id="downloadBtn" onclick="downloadValidationCSV()">
+                        📥 Download CSV
+                    </button>
+                </div>
+            </div>
+            <div class="controls-row">
+                <div class="filter-group">
+                    <span class="filter-label">Show Sensors:</span>
+                    <button class="filter-btn active" data-sensor="motion_data">Motion</button>
+                    <button class="filter-btn active" data-sensor="heart_rate_data">Heart Rate</button>
+                    <button class="filter-btn active" data-sensor="location_data">Location</button>
+                    <button class="filter-btn active" data-sensor="label_data">Labels</button>
+                </div>
+                <div class="filter-group" style="margin-left: 20px;">
+                    <label style="font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="customDatesOnly" onchange="renderTable()">
+                        <span class="filter-label">Custom dates only</span>
+                    </label>
+                </div>
+            </div>
+            <div class="controls-row" style="margin-top: 10px;">
+                <div class="filter-group">
+                    <span class="filter-label">Collection Rate Calculation:</span>
+                    <label style="margin: 0 15px; font-size: 13px; cursor: pointer;">
+                        <input type="radio" name="calculationMode" value="days_coverage" checked onchange="updateCalculationMode()">
+                        Days Coverage (days with data / total enrollment days)
+                    </label>
+                    <label style="margin: 0 15px; font-size: 13px; cursor: pointer;">
+                        <input type="radio" name="calculationMode" value="row_completeness" onchange="updateCalculationMode()">
+                        Row Completeness (actual rows / expected rows)
+                    </label>
+                </div>
+            </div>
+            <div class="last-run-info" id="lastRunInfo">Loading...</div>
+        </div>
+
+        <!-- Validation Table -->
+        <div id="validationContent" class="no-validation">Loading validation results...</div>
+
         <div class="error" id="error"></div>
         <div class="success" id="success"></div>
     </div>
-    
+
     <script>
-        // Load validation results on page load
-        let pollStartTime = null;
         const BASE_URL = "{{ request.script_root }}";
+        let validationData = null;
+        let pollStartTime = null;
         let isPolling = false;
-        
+        let visibleSensors = new Set(['motion_data', 'heart_rate_data', 'location_data', 'label_data']);
+
+        // Warning thresholds for data quality
+        const THRESHOLDS = {
+            MISSING_VALUE_PERCENT: 5  // Warn if >5% of fields in collected rows are missing
+            // Note: Gaps/completeness shown by daily collection rate bar, not status badge
+        };
+
+        // Status filters for each sensor
+        let sensorFilters = {
+            'motion_data': new Set(['ok', 'warning', 'error', 'no-data']),
+            'heart_rate_data': new Set(['ok', 'warning', 'error', 'no-data']),
+            'location_data': new Set(['ok', 'warning', 'error', 'no-data']),
+            'label_data': new Set(['ok', 'warning', 'error', 'no-data'])
+        };
+
+        // Sort settings
+        let sortBy = 'default';  // 'default', 'user_id', or 'enrollment_period'
+        let sortOrder = 'asc';   // 'asc' or 'desc'
+
+        // Calculation mode for collection rate
+        let calculationMode = 'days_coverage';  // 'days_coverage' or 'row_completeness'
+
+        // Custom enrollment periods (loaded from server SQLite DB)
+        let customEnrollments = {};
+        // Cache: per-sensor day counts within custom enrollment periods
+        // Key: "userId-deviceId-sensor", Value: number of days with data
+        let customEnrollmentDayCounts = {};
+        // Cache: raw days_with_data arrays for the expanded calendar
+        // Key: "userId-deviceId-sensor", Value: array of date strings
+        let customEnrollmentDaysData = {};
+
+        // Restore cached day counts from sessionStorage so page reloads are instant
+        try {
+            const cachedCounts = sessionStorage.getItem('customEnrollmentDayCounts');
+            const cachedDays = sessionStorage.getItem('customEnrollmentDaysData');
+            if (cachedCounts) customEnrollmentDayCounts = JSON.parse(cachedCounts);
+            if (cachedDays) customEnrollmentDaysData = JSON.parse(cachedDays);
+        } catch (e) { /* ignore parse errors */ }
+
+        function persistDayCountsCache() {
+            try {
+                sessionStorage.setItem('customEnrollmentDayCounts', JSON.stringify(customEnrollmentDayCounts));
+                sessionStorage.setItem('customEnrollmentDaysData', JSON.stringify(customEnrollmentDaysData));
+            } catch (e) { /* ignore quota errors */ }
+        }
+
+        async function loadCustomEnrollments() {
+            try {
+                const res = await fetch(BASE_URL + '/api/custom-enrollment', { credentials: 'include' });
+                if (res.ok) {
+                    customEnrollments = await res.json();
+                    // If we already have cached day counts, render immediately
+                    if (Object.keys(customEnrollmentDayCounts).length > 0 && validationData) {
+                        renderTable();
+                    }
+                    // Refresh day counts in the background
+                    if (Object.keys(customEnrollments).length > 0) {
+                        loadCustomEnrollmentDayCounts();
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load custom enrollments:', e);
+            }
+        }
+
+        async function loadCustomEnrollmentDayCounts() {
+            const sensors = ['motion_data', 'heart_rate_data', 'location_data', 'label_data'];
+            const tasks = [];
+
+            for (const [key, enroll] of Object.entries(customEnrollments)) {
+                for (const sensor of sensors) {
+                    const cacheKey = `${enroll.user_id}-${enroll.device_id}-${sensor}`;
+                    tasks.push({ cacheKey, enroll, sensor });
+                }
+            }
+
+            // Throttle to 2 concurrent requests to avoid overwhelming the server
+            const concurrency = 2;
+            let i = 0;
+            async function runNext() {
+                if (i >= tasks.length) return;
+                const task = tasks[i++];
+                try {
+                    const res = await fetch(`${BASE_URL}/api/device/${task.enroll.device_id}/sensor/${task.sensor}/daily-availability?start_date=${task.enroll.start_date}&end_date=${task.enroll.end_date}&user_id=${task.enroll.user_id}`, {
+                        credentials: 'include'
+                    });
+                    const data = await res.json();
+                    const days = data.days_with_data || [];
+                    customEnrollmentDayCounts[task.cacheKey] = days.length;
+                    customEnrollmentDaysData[task.cacheKey] = days;
+                } catch {
+                    customEnrollmentDayCounts[task.cacheKey] = 0;
+                    customEnrollmentDaysData[task.cacheKey] = [];
+                }
+                // Persist to sessionStorage and update just the affected row
+                persistDayCountsCache();
+                if (validationData) updateSingleRow(task.enroll.user_id, task.enroll.device_id);
+                await runNext();
+            }
+
+            // Start `concurrency` parallel chains
+            const workers = [];
+            for (let w = 0; w < Math.min(concurrency, tasks.length); w++) {
+                workers.push(runNext());
+            }
+            await Promise.all(workers);
+        }
+
+        function getCustomEnrollment(userId, deviceId) {
+            return customEnrollments[`${userId}-${deviceId}`] || null;
+        }
+
+        function getCustomDayCount(userId, deviceId, sensor) {
+            return customEnrollmentDayCounts[`${userId}-${deviceId}-${sensor}`];
+        }
+
+        function getCustomDaysData(userId, deviceId, sensor) {
+            return customEnrollmentDaysData[`${userId}-${deviceId}-${sensor}`];
+        }
+
+        // Initialize filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const sensor = this.getAttribute('data-sensor');
+                if (this.classList.contains('active')) {
+                    visibleSensors.add(sensor);
+                } else {
+                    visibleSensors.delete(sensor);
+                }
+                renderTable();
+            });
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            renderTable();
+        });
+
+        // Load validation results on page load
         function loadValidationResults() {
             fetch(BASE_URL + '/api/validation-results', {
                 credentials: 'include'
             })
-                .then(response => {
-                    if (response.status === 202) {
-                        // Validation is running - show partial results if available
-                        return response.json().then(data => {
-                            if (pollStartTime === null) {
-                                pollStartTime = Date.now();
-                            }
-                            
-                            // Always display partial results if available
-                            if (data.users && data.users.length > 0) {
-                                displayValidationResults(data);
-                                const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
-                                document.getElementById('lastRun').textContent = 
-                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
-                            } else {
-                                document.getElementById('validationContent').innerHTML = 
-                                    '<div class="no-validation">Validation is running... Waiting for first results.</div>';
-                                const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
-                                document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
-                            }
-                            
-                            // Continue polling to auto-update
-                            isPolling = true;
-                            setTimeout(() => pollValidationResults(0), 5000);
-                            return null;
-                        });
-                    } else if (response.status === 404) {
-                        return response.json().then(data => {
-                            let message = data.message || 'No validation results found. Click "Run Now" to start validation.';
-                            if (data.last_error) {
-                                message += `<br><strong>Last error:</strong> ${data.last_error}`;
-                            }
-                            document.getElementById('validationContent').innerHTML = 
-                                `<div class="no-validation">${message}</div>`;
-                            
-                            if (data.last_run) {
-                                const lastRunDate = new Date(data.last_run);
-                                document.getElementById('lastRun').textContent = 
-                                    `Last run: ${lastRunDate.toLocaleString()}`;
-                            } else {
-                                document.getElementById('lastRun').textContent = 'Never run';
-                            }
-                            
-                            // Update scheduler info if available
-                            if (data.scheduler) {
-                                let schedulerText = `Auto-validation: Enabled (checks ${data.scheduler.days_back} days back, ${data.scheduler.max_workers} workers)`;
-                                if (data.scheduler.next_run) {
-                                    const nextRunDate = new Date(data.scheduler.next_run);
-                                    schedulerText += ` • Next run: ${nextRunDate.toLocaleString()}`;
-                                }
-                                document.getElementById('schedulerInfo').textContent = schedulerText;
-                            }
-                            
-                            return null;
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data) {
-                        document.getElementById('schedulerInfo').textContent = 'Auto-validation: Enabled (checks 7 days back)';
-                        return;
-                    }
-                    
-                    displayValidationResults(data);
-                })
-                .catch(error => {
-                    document.getElementById('validationContent').innerHTML = 
-                        '<div class="no-validation">Error loading validation results: ' + error.message + '</div>';
-                    document.getElementById('lastRun').textContent = 'Error';
-                    document.getElementById('schedulerInfo').textContent = 'Auto-validation: Enabled';
-                });
+            .then(response => {
+                if (response.status === 202) {
+                    return response.json().then(data => {
+                        if (pollStartTime === null) {
+                            pollStartTime = Date.now();
+                        }
+                        validationData = data;
+                        renderTable();
+                        updateLastRunInfo(data);
+                        isPolling = true;
+                        // Update button to show validation is running
+                        const btn = document.getElementById('triggerBtn');
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="loading-spinner"></span>Running...';
+                        setTimeout(() => pollValidationResults(0), 5000);
+                        return null;
+                    });
+                } else if (response.status === 404) {
+                    return response.json().then(data => {
+                        document.getElementById('validationContent').innerHTML =
+                            '<div class="no-validation">No validation results found. Click "Run Validation" to start validation.</div>';
+                        updateLastRunInfo(data);
+                        return null;
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+                validationData = data;
+                renderTable();
+                updateLastRunInfo(data);
+            })
+            .catch(error => {
+                document.getElementById('validationContent').innerHTML =
+                    '<div class="no-validation">Error loading validation results: ' + error.message + '</div>';
+            });
         }
-        
-        // Function to display validation results
-        function displayValidationResults(data) {
-            // Update last run time
+
+        // Update last run info
+        function updateLastRunInfo(data) {
+            const lastRunInfo = document.getElementById('lastRunInfo');
+            let text = '';
+
             if (data.last_run) {
                 const lastRunDate = new Date(data.last_run);
-                document.getElementById('lastRun').textContent = 
-                    `Last run: ${lastRunDate.toLocaleString()}${data.partial ? ' (partial)' : ''}`;
+                text = `Last run: ${lastRunDate.toLocaleString()}${data.partial ? ' (partial)' : ''}`;
             } else {
-                document.getElementById('lastRun').textContent = 'Never run';
+                text = 'Never run';
             }
-            
-            // Update scheduler info
-            if (data.scheduler) {
-                let schedulerText = `Auto-validation: Enabled (checks ${data.scheduler.days_back} days back, ${data.scheduler.max_workers || 4} workers)`;
+
+            if (data.scheduler && data.scheduler.enabled) {
+                text += ` | Auto-validation: Enabled (${data.scheduler.days_back} days back)`;
                 if (data.scheduler.next_run) {
                     const nextRunDate = new Date(data.scheduler.next_run);
-                    schedulerText += ` • Next run: ${nextRunDate.toLocaleString()}`;
+                    text += ` | Next run: ${nextRunDate.toLocaleString()}`;
                 }
-                document.getElementById('schedulerInfo').textContent = schedulerText;
-            } else {
-                document.getElementById('schedulerInfo').textContent = 'Auto-validation: Not configured';
             }
-            
-            // Display validation results
-            let html = '';
-            
-            // Show date ranges checked from history
-            const history = data.history || {};
-            
-            if (data.users && data.users.length > 0) {
-                data.users.forEach(user => {
-                    html += `<div class="user-item">`;
-                    html += `<div class="user-header">${user.email} (${user.type})</div>`;
-                    
-                    // Show accumulated date ranges checked for this user
-                    const userHistory = history[String(user.user_id)];
-                    if (userHistory && userHistory.date_ranges_checked && userHistory.date_ranges_checked.length > 0) {
-                        html += `<div style="font-size: 11px; color: #666; margin-bottom: 8px;">`;
-                        html += `<strong>Date ranges checked (${userHistory.date_ranges_checked.length} total):</strong> `;
-                        const ranges = userHistory.date_ranges_checked.slice(-5); // Show last 5
-                        ranges.forEach((range, idx) => {
-                            if (idx > 0) html += ', ';
-                            const start = new Date(range.start).toLocaleDateString();
-                            const end = new Date(range.end).toLocaleDateString();
-                            html += `${start} to ${end}`;
-                        });
-                        if (userHistory.date_ranges_checked.length > 5) {
-                            html += ` (+${userHistory.date_ranges_checked.length - 5} more)`;
+
+            if (data.is_running || data.status === 'running') {
+                const elapsedSeconds = pollStartTime ? Math.floor((Date.now() - pollStartTime) / 1000) : 0;
+                text = `<span class="loading-spinner"></span>Validation running... (${elapsedSeconds}s) | ` + text;
+            }
+
+            lastRunInfo.innerHTML = text;
+        }
+
+        // Render table
+        function renderTable() {
+            // If validation is running and no users data yet, show a running message
+            if (validationData && (validationData.is_running || validationData.status === 'running') &&
+                (!validationData.users || validationData.users.length === 0)) {
+                document.getElementById('validationContent').innerHTML =
+                    '<div class="no-validation"><span class="loading-spinner"></span>Validation in progress... Results will appear when complete.</div>';
+                return;
+            }
+
+            if (!validationData || !validationData.users || validationData.users.length === 0) {
+                document.getElementById('validationContent').innerHTML =
+                    '<div class="no-validation">No users found in validation results</div>';
+                return;
+            }
+
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const customDatesOnly = document.getElementById('customDatesOnly').checked;
+            let filteredUsers = validationData.users.filter(user => {
+                if (!(user.email.toLowerCase().includes(searchTerm) ||
+                      String(user.user_id).includes(searchTerm))) return false;
+                if (customDatesOnly) {
+                    // Keep user only if at least one device has a custom enrollment
+                    const hasCustom = user.devices.some(d => getCustomEnrollment(user.user_id, d.device_id) !== null);
+                    if (!hasCustom) return false;
+                }
+                return true;
+            });
+
+            // Helper function to get enrollment period end date for sorting
+            // Uses custom enrollment end date if set, otherwise the latest sensor data date
+            const getEnrollmentEndDate = (user) => {
+                let maxTime = null;
+                user.devices.forEach(device => {
+                    // Check for custom enrollment period first
+                    const custom = getCustomEnrollment(user.user_id, device.device_id);
+                    if (custom) {
+                        const customEnd = new Date(custom.end_date);
+                        if (!maxTime || customEnd > maxTime) maxTime = customEnd;
+                        return;
+                    }
+                    // Fallback to sensor data ranges
+                    ['motion_data', 'heart_rate_data', 'location_data'].forEach(sensor => {
+                        const mod = (device.modalities || {})[sensor];
+                        if (mod && mod.has_data && mod.date_range) {
+                            const sensorMax = new Date(mod.date_range.max);
+                            if (!maxTime || sensorMax > maxTime) maxTime = sensorMax;
                         }
-                        html += `</div>`;
-                    }
-                    
-                    if (user.devices && user.devices.length > 0) {
-                        user.devices.forEach(device => {
-                            html += `<div class="device-item">`;
-                            html += `<strong>Device ${device.device_id}:</strong><br>`;
-                            
-                            Object.keys(device.modalities || {}).forEach(modality => {
-                                const modResult = device.modalities[modality];
-                                let statusClass = 'status-no-data';
-                                let statusText = '';
-                                let details = '';
-                                let displayText = '';
-                                
-                                if (modResult.has_data) {
-                                    const missingValues = modResult.missing_values || {};
-                                    const missingCount = Object.keys(missingValues).length;
-                                    const formatErrors = (modResult.format_errors || []).length;
-                                    const formatValid = modResult.format_valid !== false;
-                                    const samplingStats = modResult.sampling_stats || {};
-                                    const totalRows = modResult.total_rows || 0;
-                                    
-                                    // Calculate total missing value count
-                                    let totalMissingValues = 0;
-                                    let missingDetails = [];
-                                    Object.keys(missingValues).forEach(field => {
-                                        const missingInfo = missingValues[field];
-                                        totalMissingValues += missingInfo.count || 0;
-                                        missingDetails.push(`${field}: ${missingInfo.count} (${missingInfo.percentage.toFixed(1)}%)`);
-                                    });
-                                    
-                                    // Build comprehensive display text with clear labels
-                                    const parts = [];
-                                    
-                                    // Status icon and basic status
-                                    if (!formatValid) {
-                                        statusClass = 'status-error';
-                                        statusText = '✗ Format Invalid';
-                                    } else if (formatErrors > 0) {
-                                        statusClass = 'status-error';
-                                        statusText = '✗ Format Errors';
-                                    } else if (samplingStats.gap_count > 0 && samplingStats.gap_count > totalRows * 0.1) {
-                                        statusClass = 'status-warning';
-                                        statusText = '⚠ Data Gaps';
-                                    } else if (totalMissingValues > 0) {
-                                        statusClass = 'status-warning';
-                                        statusText = '⚠ Missing Values';
-                                    } else {
-                                        statusClass = 'status-ok';
-                                        statusText = '✓ OK';
-                                    }
-                                    
-                                    // Add data points count with clear label
-                                    parts.push(`Data points: ${totalRows.toLocaleString()}`);
-                                    
-                                    // Add missing values info with clear explanation
-                                    if (totalMissingValues > 0) {
-                                        const missingPct = ((totalMissingValues / totalRows) * 100).toFixed(1);
-                                        parts.push(`Missing values: ${totalMissingValues.toLocaleString()} (${missingPct}%)`);
-                                    } else {
-                                        parts.push('Missing values: None');
-                                    }
-                                    
-                                    // Add gap information with clear explanation
-                                    if (samplingStats.gap_count > 0) {
-                                        let gapText = `Data gaps: ${samplingStats.gap_count} interruption${samplingStats.gap_count !== 1 ? 's' : ''}`;
-                                        if (samplingStats.total_gap_time_formatted) {
-                                            gapText += ` (${samplingStats.total_gap_time_formatted} missing)`;
-                                        }
-                                        parts.push(gapText);
-                                    } else {
-                                        parts.push('Data gaps: None');
-                                    }
-                                    
-                                    // Add sampling frequency with clear explanation
-                                    if (samplingStats.sampling_frequency !== null && samplingStats.sampling_frequency !== undefined) {
-                                        const freq = samplingStats.sampling_frequency;
-                                        if (freq >= 1) {
-                                            parts.push(`Sampling rate: ${freq.toFixed(2)} Hz (${(1/freq).toFixed(2)}s between samples)`);
-                                        } else {
-                                            const period = (1/freq);
-                                            parts.push(`Sampling rate: ${period.toFixed(1)}s between samples (${freq.toFixed(4)} Hz)`);
-                                        }
-                                    }
-                                    
-                                    // Build detailed tooltip first (before adding format errors)
-                                    details = `Total: ${totalRows.toLocaleString()} data points`;
-                                    if (modResult.date_range) {
-                                        const startDate = new Date(modResult.date_range.min);
-                                        const endDate = new Date(modResult.date_range.max);
-                                        const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
-                                        details += `\nDate range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} (${daysDiff} days)`;
-                                    }
-                                    if (samplingStats.sampling_frequency !== null && samplingStats.sampling_frequency !== undefined) {
-                                        const freq = samplingStats.sampling_frequency;
-                                        details += `\nSampling rate: ${freq >= 1 ? freq.toFixed(2) + ' Hz' : (1/freq).toFixed(1) + 's between samples'}`;
-                                    }
-                                    if (totalMissingValues > 0) {
-                                        details += `\n\nMissing Values:\n${missingDetails.join('\n')}`;
-                                    }
-                                    if (samplingStats.gap_count > 0) {
-                                        details += `\n\nData Gaps: ${samplingStats.gap_count} interruption${samplingStats.gap_count !== 1 ? 's' : ''}`;
-                                        details += `\nTotal missing time: ${samplingStats.total_gap_time_formatted || 'unknown'}`;
-                                        if (modResult.date_range) {
-                                            const startDate = new Date(modResult.date_range.min);
-                                            const endDate = new Date(modResult.date_range.max);
-                                            const totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
-                                            const gapDays = samplingStats.total_gap_time ? samplingStats.total_gap_time / (60 * 60 * 24) : 0;
-                                            const coveragePct = totalDays > 0 ? ((totalDays - gapDays) / totalDays * 100).toFixed(1) : 0;
-                                            details += `\nData coverage: ${coveragePct}%`;
-                                        }
-                                    }
-                                    
-                                    // Add format errors prominently with details
-                                    if (formatErrors > 0) {
-                                        const formatErrorDetails = [];
-                                        const formatErrorsList = modResult.format_errors || [];
-                                        
-                                        // Group errors by field and error type
-                                        const errorTypes = {};
-                                        formatErrorsList.slice(0, 20).forEach(err => { // Show first 20 errors
-                                            const field = err.field || 'unknown';
-                                            const errorMsgs = err.errors || [];
-                                            if (!errorTypes[field]) {
-                                                errorTypes[field] = [];
-                                            }
-                                            errorMsgs.forEach(msg => {
-                                                if (!errorTypes[field].includes(msg)) {
-                                                    errorTypes[field].push(msg);
-                                                }
-                                            });
-                                        });
-                                        
-                                        Object.keys(errorTypes).forEach(field => {
-                                            const uniqueErrors = errorTypes[field];
-                                            formatErrorDetails.push(`${field}: ${uniqueErrors.join('; ')}`);
-                                        });
-                                        
-                                        if (formatErrors > 20) {
-                                            formatErrorDetails.push(`... and ${formatErrors - 20} more errors`);
-                                        }
-                                        
-                                        parts.push(`Format errors: ${formatErrors} problem${formatErrors !== 1 ? 's' : ''} found`);
-                                        
-                                        // Add format error details to tooltip
-                                        details += `\n\nFormat Errors (${formatErrors} total):\n${formatErrorDetails.join('\n')}`;
-                                    }
-                                    
-                                    // Build the full display text
-                                    displayText = `${modality.replace('_', ' ')}: ${statusText}`;
-                                    if (parts.length > 0) {
-                                        displayText += '\n' + parts.join('\n');
-                                    }
-                                } else {
-                                    statusClass = 'status-error';
-                                    statusText = '✗ Error';
-                                    displayText = `${modality.replace('_', ' ')}: ${statusText}`;
-                                    if (modResult.error) {
-                                        // Show full error message
-                                        details = `Error: ${modResult.error}`;
-                                        displayText += `\nError: ${modResult.error}`;
-                                    } else if (modResult.date_range) {
-                                        const startDate = new Date(modResult.date_range.min);
-                                        const endDate = new Date(modResult.date_range.max);
-                                        details = `Date range checked: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-                                        displayText += `\nRange: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-                                    } else {
-                                        statusText = 'No Data';
-                                        displayText = `${modality.replace('_', ' ')}: ${statusText}`;
-                                    }
-                                }
-                                
-                                html += `<span class="modality-status ${statusClass}" title="${details}">`;
-                                html += displayText;
-                                html += `</span>`;
-                            });
-                            
-                            html += `</div>`;
-                        });
-                    } else {
-                        html += `<div class="device-item">No devices found</div>`;
-                    }
-                    
-                    html += `</div>`;
+                    });
                 });
-            } else {
-                html = '<div class="no-validation">No users found in validation results</div>';
+                return maxTime;
+            };
+
+            // Apply sorting
+            if (sortBy === 'user_id') {
+                filteredUsers.sort((a, b) => {
+                    const comparison = a.user_id - b.user_id;
+                    return sortOrder === 'asc' ? comparison : -comparison;
+                });
+            } else if (sortBy === 'enrollment_period') {
+                filteredUsers.sort((a, b) => {
+                    const aEnd = getEnrollmentEndDate(a);
+                    const bEnd = getEnrollmentEndDate(b);
+
+                    // Handle null cases (no enrollment period)
+                    if (!aEnd && !bEnd) return 0;
+                    if (!aEnd) return 1;  // Move users without data to end
+                    if (!bEnd) return -1;
+
+                    const comparison = aEnd - bEnd;
+                    return sortOrder === 'asc' ? comparison : -comparison;
+                });
             }
-            
+
+            // Calculate summary stats
+            let totalUsers = filteredUsers.length;
+            let healthyCount = 0;
+            let warningCount = 0;
+            let errorCount = 0;
+
+            filteredUsers.forEach(user => {
+                user.devices.forEach(device => {
+                    let hasError = false;
+                    let hasWarning = false;
+
+                    Object.keys(device.modalities || {}).forEach(modality => {
+                        const mod = device.modalities[modality];
+                        const statusInfo = getSensorStatus(mod);
+
+                        if (statusInfo.statusType === 'error') {
+                            hasError = true;
+                        } else if (statusInfo.statusType === 'warning') {
+                            hasWarning = true;
+                        }
+                    });
+
+                    if (hasError) errorCount++;
+                    else if (hasWarning) warningCount++;
+                    else healthyCount++;
+                });
+            });
+
+            document.getElementById('totalUsers').textContent = totalUsers;
+            document.getElementById('healthyCount').textContent = healthyCount;
+            document.getElementById('warningCount').textContent = warningCount;
+            document.getElementById('errorCount').textContent = errorCount;
+
+            // Build table
+            let html = '<div class="table-container"><table>';
+
+            // Header
+            html += '<thead><tr>';
+            html += '<th>User ID<br><button class="sort-button' + (sortBy === 'user_id' ? ' active' : '') + '" onclick="toggleSort(\'user_id\')">Sort ' + (sortBy === 'user_id' && sortOrder === 'desc' ? '↑' : '↓') + '</button></th>';
+            html += '<th>Email</th>';
+            html += '<th>Device</th>';
+            html += '<th>Enrollment Period<br><button class="sort-button' + (sortBy === 'enrollment_period' ? ' active' : '') + '" onclick="toggleSort(\'enrollment_period\')">Sort ' + (sortBy === 'enrollment_period' && sortOrder === 'desc' ? '↑' : '↓') + '</button></th>';
+
+            const helpTooltip = `
+                <span class="help-icon">?
+                    <span class="help-tooltip">
+                        <strong>Status Badge:</strong> Data quality and completeness<br><br>
+                        <div class="tooltip-status">
+                            <span class="tooltip-badge">✓</span>
+                            <strong>OK (Green):</strong> Good quality AND ≥50% collection rate
+                        </div>
+                        <div class="tooltip-status">
+                            <span class="tooltip-badge">⚠</span>
+                            <strong>Warning (Yellow):</strong> Quality or completeness issues<br>
+                            • Missing values >${THRESHOLDS.MISSING_VALUE_PERCENT}% in collected rows<br>
+                            • OR collection rate <50% (sparse data)
+                        </div>
+                        <div class="tooltip-status">
+                            <span class="tooltip-badge">✗</span>
+                            <strong>Error (Red):</strong> No data or format validation failed
+                        </div>
+                        <div class="tooltip-status">
+                            <span class="tooltip-badge" style="color: #999;">—</span>
+                            <strong>No Data (Gray):</strong> Sensor type not available
+                        </div>
+                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #555;">
+                            <strong>Collection Rate Bar:</strong> Data completeness<br>
+                            <span style="font-size: 11px;">🟢 ≥80% | 🟡 50-80% | 🔴 <50%</span><br>
+                            <em style="font-size: 10px; opacity: 0.8;">Days Coverage: % days with data<br>Row Completeness: % expected rows</em>
+                        </div>
+                    </span>
+                </span>
+            `;
+
+            if (visibleSensors.has('motion_data')) html += `<th class="sensor-column">Motion Data<br>${helpTooltip}<br><select class="column-filter" onchange="updateSensorFilter('motion_data', this.value)"><option value="all">All</option><option value="ok">✓ OK</option><option value="warning">⚠ Warning</option><option value="error">✗ Error</option><option value="no-data">No Data</option></select></th>`;
+            if (visibleSensors.has('heart_rate_data')) html += `<th class="sensor-column">Heart Rate<br>${helpTooltip}<br><select class="column-filter" onchange="updateSensorFilter('heart_rate_data', this.value)"><option value="all">All</option><option value="ok">✓ OK</option><option value="warning">⚠ Warning</option><option value="error">✗ Error</option><option value="no-data">No Data</option></select></th>`;
+            if (visibleSensors.has('location_data')) html += `<th class="sensor-column">Location<br>${helpTooltip}<br><select class="column-filter" onchange="updateSensorFilter('location_data', this.value)"><option value="all">All</option><option value="ok">✓ OK</option><option value="warning">⚠ Warning</option><option value="error">✗ Error</option><option value="no-data">No Data</option></select></th>`;
+            if (visibleSensors.has('label_data')) html += `<th class="sensor-column">Labels<br>${helpTooltip}<br><select class="column-filter" onchange="updateSensorFilter('label_data', this.value)"><option value="all">All</option><option value="ok">✓ OK</option><option value="warning">⚠ Warning</option><option value="error">✗ Error</option><option value="no-data">No Data</option></select></th>`;
+            html += '</tr></thead><tbody>';
+
+            // Rows
+            filteredUsers.forEach(user => {
+                user.devices.forEach(device => {
+                    // Check if this row should be displayed based on sensor filters
+                    let shouldDisplayRow = true;
+                    ['motion_data', 'heart_rate_data', 'location_data', 'label_data'].forEach(sensor => {
+                        if (!visibleSensors.has(sensor)) return;
+
+                        const mod = (device.modalities || {})[sensor];
+                        const statusInfo = mod ? getSensorStatus(mod) : { statusType: 'no-data' };
+                        const currentFilter = sensorFilters[sensor];
+
+                        // If filter is not "all", check if this row matches the filter
+                        if (!currentFilter.has(statusInfo.statusType)) {
+                            shouldDisplayRow = false;
+                        }
+                    });
+
+                    if (!shouldDisplayRow) return;
+
+                    const rowId = `row-${user.user_id}-${device.device_id}`;
+                    html += `<tr class="expandable-row" id="${rowId}" onclick="toggleRowExpansion('${rowId}', ${user.user_id}, '${device.device_id}', '${user.email}')">`;
+                    html += buildRowCellsHTML(user, device);
+                    html += '</tr>';
+
+                    // Add expanded content row (hidden by default)
+                    const expandedRowId = `expanded-${user.user_id}-${device.device_id}`;
+                    html += `<tr class="expanded-content" id="${expandedRowId}">`;
+                    html += `<td colspan="${4 + visibleSensors.size}">`;
+                    html += `<div class="sensor-calendar-grid" id="calendar-grid-${user.user_id}-${device.device_id}">`;
+                    html += '<div class="loading-calendar"><span class="loading-spinner"></span>Loading daily availability data...</div>';
+                    html += '</div>';
+                    html += '</td>';
+                    html += '</tr>';
+                });
+            });
+
+            html += '</tbody></table></div>';
             document.getElementById('validationContent').innerHTML = html;
         }
-        
-        // Trigger validation manually
+
+        // Build the inner cell HTML for a single row (user + device)
+        function buildRowCellsHTML(user, device) {
+            let html = '';
+            html += `<td class="user-cell"><span class="expand-icon">▶</span>${user.user_id}</td>`;
+            html += `<td class="email-cell">${user.email}<br><span style="font-size: 10px; color: #999;">${user.type}</span></td>`;
+            html += `<td class="device-cell">${device.device_id}</td>`;
+
+            // Calculate device-level enrollment period (min/max across sensor data)
+            // Exclude label_data as labels can be added retrospectively
+            let deviceMinDate = null;
+            let deviceMaxDate = null;
+            ['motion_data', 'heart_rate_data', 'location_data'].forEach(sensor => {
+                const mod = (device.modalities || {})[sensor];
+                if (mod && mod.has_data && mod.date_range) {
+                    const sensorMin = new Date(mod.date_range.min);
+                    const sensorMax = new Date(mod.date_range.max);
+                    if (!deviceMinDate || sensorMin < deviceMinDate) deviceMinDate = sensorMin;
+                    if (!deviceMaxDate || sensorMax > deviceMaxDate) deviceMaxDate = sensorMax;
+                }
+            });
+
+            // Check if there's a custom enrollment period for this user/device
+            const customEnrollData = getCustomEnrollment(user.user_id, device.device_id);
+            let displayMinDate = deviceMinDate;
+            let displayMaxDate = deviceMaxDate;
+            let isCustomEnroll = false;
+
+            if (customEnrollData) {
+                displayMinDate = new Date(customEnrollData.start_date);
+                displayMaxDate = new Date(customEnrollData.end_date);
+                isCustomEnroll = true;
+            }
+
+            html += '<td style="font-size: 12px; color: #555;">';
+            if (displayMinDate && displayMaxDate) {
+                const daysDiff = Math.round((displayMaxDate - displayMinDate) / (1000 * 60 * 60 * 24));
+                html += `${displayMinDate.toLocaleDateString()} - ${displayMaxDate.toLocaleDateString()}<br>`;
+                html += `<span style="font-size: 11px; color: #999;">(${daysDiff} days)</span>`;
+                if (isCustomEnroll) {
+                    html += `<br><span style="background: #856404; color: white; padding: 1px 5px; border-radius: 3px; font-size: 9px;">CUSTOM</span>`;
+                }
+            } else {
+                html += '<span style="color: #999; font-style: italic;">No data</span>';
+            }
+            const startISO = displayMinDate ? displayMinDate.toISOString().split('T')[0] : '';
+            const endISO = displayMaxDate ? displayMaxDate.toISOString().split('T')[0] : '';
+            html += `<br><button onclick="event.stopPropagation(); openEnrollmentEditor(${user.user_id}, '${device.device_id}', '${startISO}', '${endISO}')" style="margin-top: 4px; padding: 2px 8px; background: #667eea; color: white; border: none; border-radius: 3px; font-size: 10px; cursor: pointer;">Edit</button>`;
+            if (isCustomEnroll) {
+                html += ` <button onclick="event.stopPropagation(); resetEnrollmentPeriod(${user.user_id}, '${device.device_id}')" style="margin-top: 4px; padding: 2px 8px; background: #6c757d; color: white; border: none; border-radius: 3px; font-size: 10px; cursor: pointer;">Reset</button>`;
+            }
+            html += '</td>';
+
+            // Sensor columns
+            ['motion_data', 'heart_rate_data', 'location_data', 'label_data'].forEach(sensor => {
+                if (!visibleSensors.has(sensor)) return;
+
+                html += '<td class="sensor-cell">';
+                const mod = (device.modalities || {})[sensor];
+
+                if (mod) {
+                    // Use custom enrollment period for status calculation if set
+                    const customDaysRaw = isCustomEnroll ? getCustomDayCount(user.user_id, device.device_id, sensor) : null;
+                    const customDaysLoaded = !isCustomEnroll || customDaysRaw !== undefined;
+                    const customDays = customDaysRaw ?? null;
+                    const approxDays = (mod.sampling_stats && mod.sampling_stats.unique_days_with_data) ? mod.sampling_stats.unique_days_with_data : null;
+                    const statusInfo = isCustomEnroll
+                        ? getSensorStatusWithEnrollment(mod, displayMinDate, displayMaxDate, customDaysLoaded ? customDays : approxDays)
+                        : getSensorStatus(mod);
+                    html += `<div class="status-badge ${statusInfo.class}">${statusInfo.text}</div>`;
+
+                    if (mod.has_data && mod.total_rows) {
+                        if (mod.sampling_stats && mod.sampling_stats.sampling_frequency && mod.date_range) {
+                            const freq = mod.sampling_stats.sampling_frequency;
+
+                            let dateSpanDays;
+                            if (isCustomEnroll) {
+                                dateSpanDays = Math.round((displayMaxDate - displayMinDate) / (1000 * 60 * 60 * 24)) + 1;
+                            } else {
+                                const startDate = new Date(mod.date_range.min);
+                                const endDate = new Date(mod.date_range.max);
+                                dateSpanDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                            }
+
+                            const actualRows = mod.total_rows || 0;
+                            const expectedRowsPerDay = freq * 86400;
+                            const totalExpectedRows = expectedRowsPerDay * dateSpanDays;
+
+                            let uniqueDays;
+                            let isApproxDays = false;
+                            if (isCustomEnroll) {
+                                if (customDaysLoaded) {
+                                    uniqueDays = customDays ?? 0;
+                                } else {
+                                    uniqueDays = (mod.sampling_stats && mod.sampling_stats.unique_days_with_data) ? mod.sampling_stats.unique_days_with_data : 0;
+                                    isApproxDays = true;
+                                }
+                            } else {
+                                uniqueDays = mod.sampling_stats.unique_days_with_data || 0;
+                            }
+
+                            let dailyDataPercent;
+                            let displayText;
+
+                            if (calculationMode === 'days_coverage') {
+                                if (uniqueDays > 0) {
+                                    dailyDataPercent = Math.min(100, (uniqueDays / dateSpanDays) * 100);
+                                    displayText = `${uniqueDays}/${dateSpanDays} days`;
+                                } else {
+                                    const rowsPerDay = actualRows / dateSpanDays;
+                                    dailyDataPercent = Math.min(100, (rowsPerDay / expectedRowsPerDay) * 100);
+                                    displayText = `${rowsPerDay.toFixed(0).toLocaleString()} rows/day avg over ${dateSpanDays}d`;
+                                }
+                            } else {
+                                dailyDataPercent = Math.min(100, (actualRows / totalExpectedRows) * 100);
+                                displayText = `${actualRows.toLocaleString()}/${totalExpectedRows.toLocaleString()} rows`;
+                            }
+
+                            let coverageClass = 'coverage-low';
+                            if (dailyDataPercent >= 80) coverageClass = 'coverage-high';
+                            else if (dailyDataPercent >= 50) coverageClass = 'coverage-medium';
+
+                            html += `<div class="sensor-details">`;
+                            html += `${mod.total_rows.toLocaleString()} rows @ ${freq >= 1 ? freq.toFixed(1) + 'Hz' : (1/freq).toFixed(1) + 's'}`;
+                            html += `<br><span style="font-size: 9px; color: #666;">`;
+                            html += displayText;
+                            html += `</span>`;
+                            html += `</div>`;
+                            html += `<div class="coverage-bar"><div class="coverage-fill ${coverageClass}" style="width: ${dailyDataPercent}%"></div></div>`;
+                            html += `<div style="font-size: 9px; color: #666; margin-top: 2px;">${dailyDataPercent.toFixed(1)}% daily collection rate${isApproxDays ? ' <span style="color:#999;font-style:italic;">(approx)</span>' : ''}</div>`;
+                        } else {
+                            html += `<div class="sensor-details">${mod.total_rows.toLocaleString()} rows</div>`;
+                        }
+
+                        html += `<button class="download-sensor-btn" onclick="event.stopPropagation(); downloadSensorData('${device.device_id}', '${sensor}', '${mod.date_range ? mod.date_range.min : ''}', '${mod.date_range ? mod.date_range.max : ''}')">Download</button>`;
+                    } else if (!mod.has_data) {
+                        html += `<div class="sensor-details" style="color: #999; font-style: italic;">No sensor data found</div>`;
+                    }
+                } else {
+                    html += '<div class="status-badge status-no-data">No Data</div>';
+                }
+
+                html += '</td>';
+            });
+
+            return html;
+        }
+
+        // Update a single row in the DOM without rebuilding the entire table
+        function updateSingleRow(userId, deviceId) {
+            if (!validationData || !validationData.users) return;
+            const user = validationData.users.find(u => u.user_id === userId);
+            if (!user) return;
+            const device = user.devices.find(d => d.device_id === deviceId);
+            if (!device) return;
+
+            const rowId = `row-${userId}-${deviceId}`;
+            const row = document.getElementById(rowId);
+            if (!row) return;
+
+            row.innerHTML = buildRowCellsHTML(user, device);
+        }
+
+        // Get sensor status
+        function getSensorStatus(mod) {
+            if (!mod.has_data) {
+                return { class: 'status-error', text: '✗ No Data', statusType: 'error' };
+            }
+            if (!mod.format_valid || (mod.format_errors && mod.format_errors.length > 0)) {
+                return { class: 'status-error', text: '✗ Format Error', statusType: 'error' };
+            }
+
+            // Check missing values with threshold (quality of collected data)
+            if (mod.missing_values && Object.keys(mod.missing_values).length > 0) {
+                const totalMissing = Object.values(mod.missing_values).reduce((sum, mv) => sum + (mv.count || 0), 0);
+                const totalRows = mod.total_rows || 0;
+                const missingPercent = totalRows > 0 ? (totalMissing / totalRows) * 100 : 0;
+
+                // Only warn if missing values exceed threshold
+                if (missingPercent > THRESHOLDS.MISSING_VALUE_PERCENT) {
+                    return { class: 'status-warning', text: `⚠ ${totalMissing} Missing (${missingPercent.toFixed(1)}%)`, statusType: 'warning' };
+                }
+            }
+
+            // Check data completeness (collection rate)
+            if (mod.sampling_stats && mod.sampling_stats.sampling_frequency && mod.date_range) {
+                const freq = mod.sampling_stats.sampling_frequency;
+                const startDate = new Date(mod.date_range.min);
+                const endDate = new Date(mod.date_range.max);
+                const dateSpanDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const actualRows = mod.total_rows || 0;
+                const expectedRowsPerDay = freq * 86400;
+                const totalExpectedRows = expectedRowsPerDay * dateSpanDays;
+                const uniqueDays = mod.sampling_stats.unique_days_with_data || 0;
+
+                let dailyDataPercent;
+
+                if (calculationMode === 'days_coverage') {
+                    // Mode 1: Days with data / Total enrollment days
+                    if (uniqueDays > 0) {
+                        dailyDataPercent = Math.min(100, (uniqueDays / dateSpanDays) * 100);
+                    } else {
+                        // Fallback if unique_days not available
+                        const rowsPerDay = actualRows / dateSpanDays;
+                        dailyDataPercent = Math.min(100, (rowsPerDay / expectedRowsPerDay) * 100);
+                    }
+                } else {
+                    // Mode 2: Actual total rows / Total expected rows
+                    dailyDataPercent = Math.min(100, (actualRows / totalExpectedRows) * 100);
+                }
+
+                // Warn if collection rate is very low (<50%)
+                if (dailyDataPercent < 50) {
+                    return { class: 'status-warning', text: `⚠ Sparse (${dailyDataPercent.toFixed(1)}%)`, statusType: 'warning' };
+                }
+            }
+
+            return { class: 'status-ok', text: '✓ OK', statusType: 'ok' };
+        }
+
+        // Get sensor status using custom enrollment period for date span
+        function getSensorStatusWithEnrollment(mod, enrollStartDate, enrollEndDate, customUniqueDays) {
+            if (!mod.has_data) {
+                return { class: 'status-error', text: '✗ No Data', statusType: 'error' };
+            }
+            if (!mod.format_valid || (mod.format_errors && mod.format_errors.length > 0)) {
+                return { class: 'status-error', text: '✗ Format Error', statusType: 'error' };
+            }
+
+            // Check missing values
+            if (mod.missing_values && Object.keys(mod.missing_values).length > 0) {
+                const totalMissing = Object.values(mod.missing_values).reduce((sum, mv) => sum + (mv.count || 0), 0);
+                const totalRows = mod.total_rows || 0;
+                const missingPercent = totalRows > 0 ? (totalMissing / totalRows) * 100 : 0;
+                if (missingPercent > THRESHOLDS.MISSING_VALUE_PERCENT) {
+                    return { class: 'status-warning', text: `⚠ ${totalMissing} Missing (${missingPercent.toFixed(1)}%)`, statusType: 'warning' };
+                }
+            }
+
+            // Check data completeness using custom enrollment date span
+            if (mod.sampling_stats && mod.sampling_stats.sampling_frequency) {
+                const freq = mod.sampling_stats.sampling_frequency;
+                const dateSpanDays = Math.round((enrollEndDate - enrollStartDate) / (1000 * 60 * 60 * 24)) + 1;
+                const actualRows = mod.total_rows || 0;
+                const expectedRowsPerDay = freq * 86400;
+                const totalExpectedRows = expectedRowsPerDay * dateSpanDays;
+                // Use pre-fetched custom day count if available (use !== null to treat 0 as valid)
+                const uniqueDays = (customUniqueDays !== null && customUniqueDays !== undefined) ? customUniqueDays : (mod.sampling_stats.unique_days_with_data ?? 0);
+
+                let dailyDataPercent;
+                if (calculationMode === 'days_coverage') {
+                    if (uniqueDays > 0) {
+                        dailyDataPercent = Math.min(100, (uniqueDays / dateSpanDays) * 100);
+                    } else {
+                        const rowsPerDay = actualRows / dateSpanDays;
+                        dailyDataPercent = Math.min(100, (rowsPerDay / expectedRowsPerDay) * 100);
+                    }
+                } else {
+                    dailyDataPercent = Math.min(100, (actualRows / totalExpectedRows) * 100);
+                }
+
+                if (dailyDataPercent < 50) {
+                    return { class: 'status-warning', text: `⚠ Sparse (${dailyDataPercent.toFixed(1)}%)`, statusType: 'warning' };
+                }
+            }
+
+            return { class: 'status-ok', text: '✓ OK', statusType: 'ok' };
+        }
+
+        // Toggle sort order
+        function toggleSort(newSortBy) {
+            if (sortBy === newSortBy) {
+                // Toggle order if clicking same column
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                // New column, default to ascending
+                sortBy = newSortBy;
+                sortOrder = 'asc';
+            }
+            renderTable();
+        }
+
+        // Update calculation mode
+        function updateCalculationMode() {
+            const selected = document.querySelector('input[name="calculationMode"]:checked');
+            if (selected) {
+                calculationMode = selected.value;
+                renderTable();
+            }
+        }
+
+        // Update sensor filter
+        function updateSensorFilter(sensor, value) {
+            if (value === 'all') {
+                sensorFilters[sensor] = new Set(['ok', 'warning', 'error', 'no-data']);
+            } else {
+                sensorFilters[sensor] = new Set([value]);
+            }
+            renderTable();
+        }
+
+        // Download sensor data
+        function downloadSensorData(deviceId, measureName, startTime, endTime) {
+            const params = new URLSearchParams({
+                device_id: deviceId,
+                measure_name: measureName
+            });
+
+            if (startTime) params.append('start_time', startTime.replace('T', ' '));
+            if (endTime) params.append('end_time', endTime.replace('T', ' '));
+
+            showSuccess('Downloading data...');
+
+            fetch(`${BASE_URL}/export?${params.toString()}`, {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Export failed');
+                    });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                a.download = `${deviceId}-${measureName}-${timestamp}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showSuccess('Download completed!');
+            })
+            .catch(error => {
+                showError('Download failed: ' + error.message);
+            });
+        }
+
+        // Trigger validation
         function triggerValidation() {
             const btn = document.getElementById('triggerBtn');
             btn.disabled = true;
-            btn.textContent = 'Starting...';
-            pollStartTime = Date.now(); // Reset polling timer
+            btn.innerHTML = '<span class="loading-spinner"></span>Starting...';
+            pollStartTime = Date.now();
             isPolling = true;
-            
+
             fetch(BASE_URL + '/api/validation/trigger', {
                 method: 'POST',
                 credentials: 'include'
@@ -543,166 +1544,566 @@
             .then(data => {
                 if (data.message) {
                     showSuccess('Validation started! Results will appear as they complete...');
-                    btn.textContent = 'Running...';
-                    // Start polling immediately to show results as they come in
+                    btn.innerHTML = '<span class="loading-spinner"></span>Running...';
                     setTimeout(() => pollValidationResults(0), 2000);
                 } else {
                     showError('Failed to start validation: ' + (data.error || 'Unknown error'));
                     btn.disabled = false;
-                    btn.textContent = 'Run Now';
+                    btn.innerHTML = '▶ Run Validation';
                     isPolling = false;
                 }
             })
             .catch(error => {
                 showError('Failed to trigger validation: ' + error.message);
                 btn.disabled = false;
-                btn.textContent = 'Run Now';
+                btn.innerHTML = '▶ Run Validation';
                 isPolling = false;
             });
         }
-        
-        // Download validation results as CSV
-        function downloadValidationCSV() {
-            const btn = document.getElementById('downloadBtn');
-            const originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = 'Downloading...';
-            
-            fetch(BASE_URL + '/api/validation-results/csv', {
-                credentials: 'include'
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.error || 'Failed to download CSV');
-                        });
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    // Create download link
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `validation_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    showSuccess('CSV downloaded successfully!');
-                    btn.disabled = false;
-                    btn.textContent = originalText;
-                })
-                .catch(error => {
-                    showError('Failed to download CSV: ' + error.message);
-                    btn.disabled = false;
-                    btn.textContent = originalText;
-                });
-        }
-        
-        // Poll for validation results until they're ready, auto-updating display
+
+        // Poll validation results
         function pollValidationResults(pollCount = 0) {
-            const maxPolls = 120; // Poll for up to 120 times (10 minutes max)
-            const pollInterval = 5000; // Poll every 5 seconds
-            
+            const maxPolls = 120;
+            const pollInterval = 5000;
+
             if (pollStartTime === null) {
                 pollStartTime = Date.now();
             }
-            
+
             if (pollCount >= maxPolls) {
                 showError('Validation is taking too long. Please check server logs.');
                 document.getElementById('triggerBtn').disabled = false;
-                document.getElementById('triggerBtn').textContent = 'Run Now';
+                document.getElementById('triggerBtn').innerHTML = '▶ Run Validation';
                 pollStartTime = null;
                 isPolling = false;
                 return;
             }
-            
+
             fetch(BASE_URL + '/api/validation-results', {
                 credentials: 'include'
             })
-                .then(response => {
-                    if (response.status === 202) {
-                        // Still running - get partial results and update display
-                        return response.json().then(data => {
-                            const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
-                            const btn = document.getElementById('triggerBtn');
-                            btn.textContent = `Running... (${elapsedSeconds}s)`;
-                            
-                            // Always display partial results if available
-                            if (data.users && data.users.length > 0) {
-                                displayValidationResults(data);
-                                document.getElementById('lastRun').textContent = 
-                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
-                            } else {
-                                document.getElementById('validationContent').innerHTML = 
-                                    '<div class="no-validation">Validation is running... Waiting for first results.</div>';
-                                document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
-                            }
-                            
-                            // Continue polling to get updates
-                            setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
-                            return null;
-                        });
-                    } else if (response.status === 404) {
-                        // No results yet, keep polling
-                        const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
-                        document.getElementById('lastRun').textContent = `Running... (${elapsedSeconds}s)`;
+            .then(response => {
+                if (response.status === 202 || response.status === 404) {
+                    return response.json().then(data => {
+                        validationData = data;
+                        renderTable();
+                        updateLastRunInfo(data);
                         setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
                         return null;
-                    } else if (response.ok) {
-                        // Results ready - validation completed
-                        return response.json();
+                    });
+                } else if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch validation results');
+            })
+            .then(data => {
+                if (data) {
+                    if (data.is_running === true || data.status === 'running') {
+                        validationData = data;
+                        renderTable();
+                        updateLastRunInfo(data);
+                        setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
                     } else {
-                        throw new Error('Failed to fetch validation results');
-                    }
-                })
-                .then(data => {
-                    if (data) {
-                        // Check if validation is still running
-                        if (data.is_running === true || data.status === 'running') {
-                            // Still running, display partial results and continue polling
-                            const elapsedSeconds = Math.floor((Date.now() - pollStartTime) / 1000);
-                            if (data.users && data.users.length > 0) {
-                                displayValidationResults(data);
-                                document.getElementById('lastRun').textContent = 
-                                    `Running... (${elapsedSeconds}s) - ${data.users.length} users completed`;
-                            }
-                            setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
-                        } else {
-                            // Validation completed
+                        // Only show "completed" message if we were actually polling (not just loading old results)
+                        if (isPolling) {
                             showSuccess('Validation completed!');
-                            document.getElementById('triggerBtn').disabled = false;
-                            document.getElementById('triggerBtn').textContent = 'Run Now';
-                            pollStartTime = null;
-                            isPolling = false;
-                            // Display final results
-                            displayValidationResults(data);
                         }
+                        document.getElementById('triggerBtn').disabled = false;
+                        document.getElementById('triggerBtn').innerHTML = '▶ Run Validation';
+                        pollStartTime = null;
+                        isPolling = false;
+                        validationData = data;
+                        renderTable();
+                        updateLastRunInfo(data);
                     }
-                })
-                .catch(error => {
-                    console.error('Error polling validation results:', error);
-                    setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error polling validation results:', error);
+                setTimeout(() => pollValidationResults(pollCount + 1), pollInterval);
+            });
         }
-        
-        // Load validation results on page load
-        loadValidationResults();
-        
+
+        // Download CSV
+        function downloadValidationCSV() {
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Downloading...';
+
+            fetch(BASE_URL + '/api/validation-results/csv', {
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to download CSV');
+                    });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `validation_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showSuccess('CSV downloaded successfully!');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            })
+            .catch(error => {
+                showError('Failed to download CSV: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             document.getElementById('success').style.display = 'none';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-        
+
         function showSuccess(message) {
             const successDiv = document.getElementById('success');
             successDiv.textContent = message;
             successDiv.style.display = 'block';
             document.getElementById('error').style.display = 'none';
+            setTimeout(() => { successDiv.style.display = 'none'; }, 5000);
         }
+
+        // Track expanded rows and their loaded data
+        const expandedRows = new Set();
+        const loadedCalendars = {};
+
+        // Toggle row expansion
+        function toggleRowExpansion(rowId, userId, deviceId, email) {
+            const row = document.getElementById(rowId);
+            const expandedRow = document.getElementById(`expanded-${userId}-${deviceId}`);
+
+            if (row.classList.contains('expanded')) {
+                // Collapse
+                row.classList.remove('expanded');
+                expandedRow.classList.remove('show');
+                expandedRows.delete(rowId);
+            } else {
+                // Expand
+                row.classList.add('expanded');
+                expandedRow.classList.add('show');
+                expandedRows.add(rowId);
+
+                // Load calendar data if not already loaded
+                const calendarKey = `${userId}-${deviceId}`;
+                if (!loadedCalendars[calendarKey]) {
+                    loadDailyAvailability(userId, deviceId, email);
+                }
+            }
+        }
+
+        // Load daily availability data for all sensors
+        async function loadDailyAvailability(userId, deviceId, email) {
+            const calendarKey = `${userId}-${deviceId}`;
+            const gridContainer = document.getElementById(`calendar-grid-${userId}-${deviceId}`);
+
+            // Find user data to get sensor info
+            const userData = validationData.users.find(u => u.user_id === userId);
+            if (!userData) return;
+
+            const deviceData = userData.devices.find(d => d.device_id === deviceId);
+            if (!deviceData) return;
+
+            // Determine enrollment period
+            let participantStartDate = null;
+            let participantEndDate = null;
+
+            // 1. Check for custom enrollment period first (instant, no API call)
+            const customEnroll = getCustomEnrollment(userId, deviceId);
+            if (customEnroll) {
+                participantStartDate = customEnroll.start_date;
+                participantEndDate = customEnroll.end_date;
+            }
+
+            // 2. Fallback: derive from sensor data ranges in validation data
+            if (!participantStartDate || !participantEndDate) {
+                const sensors = ['motion_data', 'heart_rate_data', 'location_data', 'label_data'];
+                let minDate = null;
+                let maxDate = null;
+
+                sensors.forEach(sensor => {
+                    const mod = (deviceData.modalities || {})[sensor];
+                    if (mod && mod.has_data && mod.date_range) {
+                        const sensorMin = new Date(mod.date_range.min);
+                        const sensorMax = new Date(mod.date_range.max);
+                        if (!minDate || sensorMin < minDate) minDate = sensorMin;
+                        if (!maxDate || sensorMax > maxDate) maxDate = sensorMax;
+                    }
+                });
+
+                if (minDate && maxDate) {
+                    participantStartDate = minDate.toISOString().split('T')[0];
+                    participantEndDate = maxDate.toISOString().split('T')[0];
+                }
+            }
+
+            if (!participantStartDate || !participantEndDate) {
+                gridContainer.innerHTML = '<div style="color: #666; font-style: italic;">No data available for this participant. <button onclick="event.stopPropagation(); openEnrollmentEditor(' + userId + ', \'' + deviceId + '\', null, null)" style="padding: 4px 10px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; margin-left: 10px;">Set Enrollment Period</button></div>';
+                loadedCalendars[calendarKey] = true;
+                return;
+            }
+
+            // Generate all dates in participant's enrollment period
+            const enrollmentDates = [];
+            const currentDate = new Date(participantStartDate);
+            currentDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(participantEndDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            while (currentDate <= endDate) {
+                enrollmentDates.push(currentDate.toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // For each sensor, use cached data if available, otherwise fetch
+            const visibleSensorsList = Array.from(visibleSensors);
+            const sensorPromises = [];
+
+            for (const sensor of visibleSensorsList) {
+                const mod = (deviceData.modalities || {})[sensor];
+                const cachedDays = getCustomDaysData(userId, deviceId, sensor);
+
+                if (cachedDays !== undefined && customEnroll) {
+                    // Use cached data instantly - no API call needed
+                    sensorPromises.push(
+                        Promise.resolve({ sensor, data: { days_with_data: cachedDays }, mod, participantStartDate, participantEndDate })
+                    );
+                } else {
+                    // Fetch from API
+                    sensorPromises.push(
+                        fetch(`${BASE_URL}/api/device/${deviceId}/sensor/${sensor}/daily-availability?start_date=${participantStartDate}&end_date=${participantEndDate}&user_id=${userId}`, {
+                            credentials: 'include'
+                        })
+                        .then(res => res.json())
+                        .then(data => ({ sensor, data, mod, participantStartDate, participantEndDate }))
+                        .catch(err => ({ sensor, error: err, mod, participantStartDate, participantEndDate }))
+                    );
+                }
+            }
+
+            try {
+                const results = await Promise.all(sensorPromises);
+
+                // Build calendar grid HTML
+                let html = '';
+
+                // Check if there's a custom enrollment period stored
+                const isCustom = getCustomEnrollment(userId, deviceId) !== null;
+
+                // Show participant enrollment period header with edit option
+                const enrollmentStartStr = new Date(participantStartDate).toLocaleDateString();
+                const enrollmentEndStr = new Date(participantEndDate).toLocaleDateString();
+                html += `<div style="margin-bottom: 15px; padding: 10px; background: ${isCustom ? '#fff3cd' : '#e8f4fd'}; border-radius: 6px; font-size: 12px;">`;
+                html += `<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">`;
+                html += `<div>`;
+                html += `<strong>Participant Enrollment Period:</strong> ${enrollmentStartStr} - ${enrollmentEndStr} (${enrollmentDates.length} days)`;
+                if (isCustom) {
+                    html += ` <span style="background: #856404; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">CUSTOM</span>`;
+                }
+                html += `</div>`;
+                html += `<div style="display: flex; gap: 8px; align-items: center;">`;
+                html += `<button onclick="event.stopPropagation(); openEnrollmentEditor(${userId}, '${deviceId}', '${participantStartDate}', '${participantEndDate}')" style="padding: 4px 10px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Edit Period</button>`;
+                if (isCustom) {
+                    html += `<button onclick="event.stopPropagation(); resetEnrollmentPeriod(${userId}, '${deviceId}')" style="padding: 4px 10px; background: #6c757d; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">Reset to Original</button>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+                html += `</div>`;
+
+                for (const result of results) {
+                    const { sensor, data, mod, error, participantStartDate: pStart, participantEndDate: pEnd } = result;
+                    const sensorName = getSensorDisplayName(sensor);
+                    const daysWithData = new Set(data?.days_with_data || []);
+
+                    html += `<div class="sensor-calendar-card">`;
+
+                    // Use participant enrollment period for ALL sensors
+                    const totalDays = enrollmentDates.length;
+                    const daysWithDataCount = enrollmentDates.filter(d => daysWithData.has(d)).length;
+                    const missingDays = totalDays - daysWithDataCount;
+                    const coverage = totalDays > 0 ? ((daysWithDataCount / totalDays) * 100).toFixed(1) : 0;
+
+                    if (error) {
+                        html += `<h4><span class="status-indicator no-data"></span>${sensorName}</h4>`;
+                        html += `<div style="color: #dc3545; font-style: italic; font-size: 12px;">Error loading data</div>`;
+                    } else if (daysWithDataCount === 0) {
+                        html += `<h4><span class="status-indicator no-data"></span>${sensorName}</h4>`;
+                        html += `<div style="color: #999; font-style: italic; font-size: 12px;">No data during enrollment period</div>`;
+                    } else {
+                        html += `<h4><span class="status-indicator has-data"></span>${sensorName}</h4>`;
+
+                        html += `<div class="calendar-container">`;
+                        html += renderCalendarByMonth(enrollmentDates, daysWithData);
+                        html += `</div>`;
+
+                        html += `<div class="calendar-legend">`;
+                        html += `<div class="calendar-legend-item"><div class="calendar-legend-box has-data"></div>Has data</div>`;
+                        html += `<div class="calendar-legend-item"><div class="calendar-legend-box missing"></div>Missing</div>`;
+                        html += `</div>`;
+
+                        html += `<div class="calendar-stats">`;
+                        html += `<strong>${daysWithDataCount}</strong> of <strong>${totalDays}</strong> days have data (${coverage}% coverage)`;
+                        if (missingDays > 0) {
+                            html += `<br><span style="color: #dc3545;">${missingDays} days missing</span>`;
+                        }
+                        html += `</div>`;
+                    }
+
+                    html += `</div>`;
+                }
+
+                gridContainer.innerHTML = html;
+                loadedCalendars[calendarKey] = true;
+
+            } catch (err) {
+                gridContainer.innerHTML = `<div style="color: #dc3545;">Error loading availability data: ${err.message}</div>`;
+            }
+        }
+
+        // Render calendar grouped by month
+        function renderCalendarByMonth(allDates, daysWithData) {
+            if (allDates.length === 0) return '';
+
+            // Group dates by month
+            const monthGroups = {};
+            allDates.forEach(dateStr => {
+                const date = new Date(dateStr);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthGroups[monthKey]) {
+                    monthGroups[monthKey] = [];
+                }
+                monthGroups[monthKey].push(dateStr);
+            });
+
+            let html = '';
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            Object.keys(monthGroups).sort().forEach(monthKey => {
+                const dates = monthGroups[monthKey];
+                const [year, month] = monthKey.split('-');
+                const monthName = monthNames[parseInt(month) - 1];
+
+                html += `<div class="calendar-month">`;
+                html += `<div class="calendar-month-label">${monthName} ${year}</div>`;
+                html += `<div class="calendar-days">`;
+
+                dates.forEach(dateStr => {
+                    const hasData = daysWithData.has(dateStr);
+                    const displayDate = new Date(dateStr).getDate();
+                    const className = hasData ? 'has-data' : 'missing';
+                    html += `<div class="calendar-day ${className}" data-date="${dateStr}" title="${dateStr}: ${hasData ? 'Has data' : 'Missing'}"></div>`;
+                });
+
+                html += `</div>`;
+                html += `</div>`;
+            });
+
+            return html;
+        }
+
+        // Get display name for sensor
+        function getSensorDisplayName(sensor) {
+            const names = {
+                'motion_data': 'Motion Data',
+                'heart_rate_data': 'Heart Rate',
+                'location_data': 'Location',
+                'label_data': 'Labels'
+            };
+            return names[sensor] || sensor;
+        }
+
+        // Enrollment period editor functions
+        function openEnrollmentEditor(userId, deviceId, currentStart, currentEnd) {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'enrollment-modal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+
+            const content = document.createElement('div');
+            content.style.cssText = 'background: white; padding: 25px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);';
+
+            content.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333;">Set Custom Enrollment Period</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                    Enter the enrollment period for this participant. Data will be analyzed within this date range.
+                </p>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px;">Start Date</label>
+                    <input type="date" id="enrollment-start" value="${currentStart || ''}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 5px;">End Date</label>
+                    <input type="date" id="enrollment-end" value="${currentEnd || ''}" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="closeEnrollmentEditor()" style="padding: 10px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">Cancel</button>
+                    <button onclick="saveEnrollmentPeriod(${userId}, '${deviceId}')" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">Save & Recalculate</button>
+                </div>
+            `;
+
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            // Close on click outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeEnrollmentEditor();
+            });
+        }
+
+        function closeEnrollmentEditor() {
+            const modal = document.getElementById('enrollment-modal');
+            if (modal) modal.remove();
+        }
+
+        async function saveEnrollmentPeriod(userId, deviceId) {
+            const startDate = document.getElementById('enrollment-start').value;
+            const endDate = document.getElementById('enrollment-end').value;
+
+            if (!startDate || !endDate) {
+                alert('Please enter both start and end dates.');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date must be before end date.');
+                return;
+            }
+
+            // Save to server SQLite DB
+            try {
+                const res = await fetch(`${BASE_URL}/api/custom-enrollment/${userId}/${deviceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to save');
+                }
+            } catch (e) {
+                showError('Failed to save enrollment period: ' + e.message);
+                return;
+            }
+
+            // Update local cache
+            customEnrollments[`${userId}-${deviceId}`] = {
+                user_id: userId,
+                device_id: deviceId,
+                start_date: startDate,
+                end_date: endDate
+            };
+
+            closeEnrollmentEditor();
+
+            // Fetch accurate day counts for the new custom period
+            const sensors = ['motion_data', 'heart_rate_data', 'location_data', 'label_data'];
+            await Promise.all(sensors.map(sensor =>
+                fetch(`${BASE_URL}/api/device/${deviceId}/sensor/${sensor}/daily-availability?start_date=${startDate}&end_date=${endDate}&user_id=${userId}`, {
+                    credentials: 'include'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const days = data.days_with_data || [];
+                    customEnrollmentDayCounts[`${userId}-${deviceId}-${sensor}`] = days.length;
+                    customEnrollmentDaysData[`${userId}-${deviceId}-${sensor}`] = days;
+                })
+                .catch(() => {
+                    customEnrollmentDayCounts[`${userId}-${deviceId}-${sensor}`] = null;
+                    customEnrollmentDaysData[`${userId}-${deviceId}-${sensor}`] = [];
+                })
+            ));
+            persistDayCountsCache();
+
+            // Update just the affected row
+            updateSingleRow(userId, deviceId);
+
+            // Clear the cached calendar data and reload if expanded
+            const calendarKey = `${userId}-${deviceId}`;
+            delete loadedCalendars[calendarKey];
+
+            const rowId = `row-${userId}-${deviceId}`;
+            if (expandedRows.has(rowId)) {
+                const row = document.getElementById(rowId);
+                const expandedRow = document.getElementById(`expanded-${userId}-${deviceId}`);
+                if (row && expandedRow) {
+                    row.classList.add('expanded');
+                    expandedRow.classList.add('show');
+                    const userData = validationData.users.find(u => u.user_id === userId);
+                    if (userData) {
+                        loadDailyAvailability(userId, deviceId, userData.email);
+                    }
+                }
+            }
+
+            showSuccess('Enrollment period updated!');
+        }
+
+        async function resetEnrollmentPeriod(userId, deviceId) {
+            // Delete from server SQLite DB
+            try {
+                const res = await fetch(`${BASE_URL}/api/custom-enrollment/${userId}/${deviceId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to delete');
+                }
+            } catch (e) {
+                showError('Failed to reset enrollment period: ' + e.message);
+                return;
+            }
+
+            // Update local caches
+            delete customEnrollments[`${userId}-${deviceId}`];
+            ['motion_data', 'heart_rate_data', 'location_data', 'label_data'].forEach(s => {
+                delete customEnrollmentDayCounts[`${userId}-${deviceId}-${s}`];
+                delete customEnrollmentDaysData[`${userId}-${deviceId}-${s}`];
+            });
+            persistDayCountsCache();
+
+            // Update just the affected row
+            updateSingleRow(userId, deviceId);
+
+            // Clear the cached calendar data and reload if expanded
+            const calendarKey = `${userId}-${deviceId}`;
+            delete loadedCalendars[calendarKey];
+
+            const rowId = `row-${userId}-${deviceId}`;
+            if (expandedRows.has(rowId)) {
+                const row = document.getElementById(rowId);
+                const expandedRow = document.getElementById(`expanded-${userId}-${deviceId}`);
+                if (row && expandedRow) {
+                    row.classList.add('expanded');
+                    expandedRow.classList.add('show');
+                    const userData = validationData.users.find(u => u.user_id === userId);
+                    if (userData) {
+                        loadDailyAvailability(userId, deviceId, userData.email);
+                    }
+                }
+            }
+
+            showSuccess('Enrollment period reset to original.');
+        }
+
+        // Load custom enrollments and validation results in parallel
+        loadCustomEnrollments();
+        loadValidationResults();
     </script>
 </body>
 </html>

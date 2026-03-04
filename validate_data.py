@@ -154,11 +154,13 @@ def calculate_sampling_stats(data_rows, measure_name):
             'sampling_frequency': None,
             'sampling_period': None,
             'gaps': [],
-            'total_gap_time': None
+            'total_gap_time': None,
+            'unique_days_with_data': 0
         }
-    
+
     # Extract timestamps
     timestamps = []
+    unique_days = set()
     for row in data_rows:
         if 'time' in row and row['time']:
             try:
@@ -171,20 +173,23 @@ def calculate_sampling_stats(data_rows, measure_name):
                     try:
                         ts = datetime.strptime(ts_str.split('.')[0].split('+')[0].split('Z')[0].strip(), fmt)
                         timestamps.append(ts)
+                        # Track unique days
+                        unique_days.add(ts.date())
                         break
                     except ValueError:
                         continue
             except Exception:
                 continue
-    
+
     if len(timestamps) < 2:
         return {
             'sampling_frequency': None,
             'sampling_period': None,
             'gaps': [],
-            'total_gap_time': None
+            'total_gap_time': None,
+            'unique_days_with_data': len(unique_days)
         }
-    
+
     # Sort timestamps
     timestamps.sort()
     
@@ -199,7 +204,8 @@ def calculate_sampling_stats(data_rows, measure_name):
             'sampling_frequency': None,
             'sampling_period': None,
             'gaps': [],
-            'total_gap_time': None
+            'total_gap_time': None,
+            'unique_days_with_data': len(unique_days)
         }
     
     # Calculate median sampling period (more robust than mean)
@@ -236,7 +242,8 @@ def calculate_sampling_stats(data_rows, measure_name):
         'gaps': gaps,
         'total_gap_time': total_gap_seconds,
         'total_gap_time_formatted': format_duration(total_gap_seconds) if total_gap_seconds > 0 else None,
-        'gap_count': len(gaps)
+        'gap_count': len(gaps),
+        'unique_days_with_data': len(unique_days)
     }
 
 def format_duration(seconds):
@@ -271,13 +278,43 @@ def validate_timestream_data(ts_query_client, config, device_id, measure_name, s
         # Get date range of all available data
         from export import get_timestream_date_range
         min_time, max_time = get_timestream_date_range(ts_query_client, config, device_id, measure_name)
-        
+
         if min_time is None or max_time is None:
             return validation_result
-        
-        # Determine validation time range
+
+        # Parse actual data timestamps for date range display
+        actual_min_dt_str = min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time
+        actual_max_dt_str = max_time.replace('Z', '+00:00') if 'Z' in max_time else max_time
+        try:
+            actual_min_dt = datetime.fromisoformat(actual_min_dt_str)
+        except ValueError:
+            actual_min_dt = datetime.strptime(actual_min_dt_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+        try:
+            actual_max_dt = datetime.fromisoformat(actual_max_dt_str)
+        except ValueError:
+            actual_max_dt = datetime.strptime(actual_max_dt_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+
+        # Store the actual data period (first to last timestamp)
+        validation_result['date_range'] = {
+            'min': actual_min_dt.isoformat(),
+            'max': actual_max_dt.isoformat()
+        }
+
+        # Determine validation time range for querying
+        if start_time is None:
+            # Validate all available data from beginning
+            start_time = actual_min_dt
+        else:
+            # Parse start_time if it's a string
+            if isinstance(start_time, str):
+                try:
+                    start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00') if 'Z' in start_time else start_time)
+                except ValueError:
+                    start_time = datetime.strptime(start_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
+
+        # Use actual max timestamp for end_time to count all data
         if end_time is None:
-            end_time = datetime.utcnow()
+            end_time = actual_max_dt
         else:
             # Parse end_time if it's a string
             if isinstance(end_time, str):
@@ -286,144 +323,101 @@ def validate_timestream_data(ts_query_client, config, device_id, measure_name, s
                 except ValueError:
                     end_time = datetime.strptime(end_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
         
-        if start_time is None:
-            # Validate all available data from beginning
-            min_dt_str = min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time
-            try:
-                start_time = datetime.fromisoformat(min_dt_str)
-            except ValueError:
-                start_time = datetime.strptime(min_dt_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
-        else:
-            # Parse start_time if it's a string
-            if isinstance(start_time, str):
-                try:
-                    start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00') if 'Z' in start_time else start_time)
-                except ValueError:
-                    start_time = datetime.strptime(start_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
-        
-        # Store the actual date range being validated
-        validation_result['date_range'] = {
-            'min': start_time.isoformat(),
-            'max': end_time.isoformat()
-        }
-        
         start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
         end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
         
         sub_measure_names = MEASURE_DEFINITIONS.get(measure_name, [])
         
-        # For large date ranges, use sampling to avoid exceeding query result size limits
-        # Calculate time span in days
-        time_span_days = (end_time - start_time).total_seconds() / (24 * 3600)
-        
-        # If time span is large (>30 days), use sampling approach
-        if time_span_days > 30:
-            print(f"[Thread]       Large time range ({time_span_days:.1f} days), using sampling approach")
-            # Use aggregation query to get total count first
-            count_query = f"""
-                SELECT COUNT(*) as total_count
+        # Always get total count first, then sample for validation
+        # Use aggregation query to get total count
+        count_query = f"""
+            SELECT COUNT(*) as total_count
+            FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
+            WHERE measure_name = '{measure_name}'
+              AND device_id = '{device_id}'
+              AND time BETWEEN TIMESTAMP '{start_time_str}' AND TIMESTAMP '{end_time_str}'
+        """
+
+        try:
+            count_response = _paginate_timestream_query(ts_query_client, count_query)
+            count_rows = parse_timestream_response(count_response)
+            total_count = int(count_rows[0]['total_count']) if count_rows else 0
+
+            if total_count == 0:
+                return validation_result
+
+            validation_result['has_data'] = True
+            validation_result['total_rows'] = total_count
+
+            print(f"[Thread]       Found {total_count} total rows for {measure_name}")
+
+            # Count unique days with data across entire dataset
+            unique_days_query = f"""
+                SELECT COUNT(DISTINCT DATE(time)) as unique_days
                 FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
                 WHERE measure_name = '{measure_name}'
                   AND device_id = '{device_id}'
                   AND time BETWEEN TIMESTAMP '{start_time_str}' AND TIMESTAMP '{end_time_str}'
             """
-            
+
             try:
-                count_response = _paginate_timestream_query(ts_query_client, count_query)
-                count_rows = parse_timestream_response(count_response)
-                total_count = int(count_rows[0]['total_count']) if count_rows else 0
-                
-                if total_count == 0:
-                    return validation_result
-                
-                validation_result['has_data'] = True
-                validation_result['total_rows'] = total_count
-                
-                # Sample data for validation (limit to reasonable size)
-                # Sample every Nth row or use time-based sampling
-                sample_interval = max(1, total_count // 10000)  # Sample up to 10k rows
-                
-                # Use TABLESAMPLE or LIMIT with OFFSET for sampling
-                # Since Timestream doesn't support TABLESAMPLE, we'll use a time-based approach
-                # Sample evenly across the time range
-                num_samples = min(10000, total_count)
-                time_step = (end_time - start_time) / num_samples if num_samples > 0 else timedelta(seconds=1)
-                
-                # Build query to sample data points evenly across time range
-                select_measures_sql = ", ".join([f"{name}" for name in sub_measure_names])
-                sample_query = f"""
-                    SELECT time, {select_measures_sql}
-                    FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
-                    WHERE measure_name = '{measure_name}'
-                      AND device_id = '{device_id}'
-                      AND time BETWEEN TIMESTAMP '{start_time_str}' AND TIMESTAMP '{end_time_str}'
-                    ORDER BY time ASC
-                    LIMIT 10000
-                """
-                
-                print(f"[Thread]       Sampling {num_samples} rows from {total_count} total rows")
-                sample_response = _paginate_timestream_query(ts_query_client, sample_query)
-                data_rows = parse_timestream_response(sample_response)
-                
-                if not data_rows:
-                    # If sampling fails, try with smaller limit
-                    sample_query = sample_query.replace('LIMIT 10000', 'LIMIT 1000')
-                    sample_response = _paginate_timestream_query(ts_query_client, sample_query)
-                    data_rows = parse_timestream_response(sample_response)
-                
-                # Note that we're using sampled data for validation
-                validation_result['sampled'] = True
-                validation_result['sample_size'] = len(data_rows)
-                validation_result['total_rows'] = total_count
-                
+                unique_days_response = _paginate_timestream_query(ts_query_client, unique_days_query)
+                unique_days_rows = parse_timestream_response(unique_days_response)
+                unique_days_count = int(unique_days_rows[0]['unique_days']) if unique_days_rows else 0
+                print(f"[Thread]       Found data on {unique_days_count} unique days")
             except Exception as e:
-                # If aggregation fails, fall back to smaller time chunks
-                print(f"[Thread]       Aggregation failed, using time-chunked approach: {e}")
-                return validate_timestream_data_chunked(
-                    ts_query_client, config, device_id, measure_name, start_time, end_time, validation_result
-                )
-        else:
-            # For smaller ranges, query normally but with a limit
+                print(f"[Thread]       Could not count unique days: {e}")
+                unique_days_count = 0
+
+            # Sample data for validation (limit to reasonable size)
+            # Sample evenly across the time range
+            num_samples = min(10000, total_count)
+
+            # Build query to sample data points evenly across time range
             select_measures_sql = ", ".join([f"{name}" for name in sub_measure_names])
-            query = f"""
+            sample_query = f"""
                 SELECT time, {select_measures_sql}
                 FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
                 WHERE measure_name = '{measure_name}'
                   AND device_id = '{device_id}'
                   AND time BETWEEN TIMESTAMP '{start_time_str}' AND TIMESTAMP '{end_time_str}'
                 ORDER BY time ASC
-                LIMIT 50000
+                LIMIT {num_samples}
             """
-            
-            try:
-                response = _paginate_timestream_query(ts_query_client, query)
-                data_rows = parse_timestream_response(response)
-                
-                if not data_rows:
-                    return validation_result
-                
-                validation_result['has_data'] = True
-                validation_result['total_rows'] = len(data_rows)
-                
-            except Exception as e:
-                error_msg = str(e)
-                if 'max query result size' in error_msg.lower() or 'query aborted' in error_msg.lower():
-                    # Fall back to chunked approach
-                    print(f"[Thread]       Query size limit exceeded, using time-chunked approach")
-                    return validate_timestream_data_chunked(
-                        ts_query_client, config, device_id, measure_name, start_time, end_time, validation_result
-                    )
-                else:
-                    raise
-        
+
+            print(f"[Thread]       Sampling {num_samples} rows for validation")
+            sample_response = _paginate_timestream_query(ts_query_client, sample_query)
+            data_rows = parse_timestream_response(sample_response)
+
+            if not data_rows:
+                # If sampling fails, try with smaller limit
+                sample_query = sample_query.replace(f'LIMIT {num_samples}', 'LIMIT 1000')
+                sample_response = _paginate_timestream_query(ts_query_client, sample_query)
+                data_rows = parse_timestream_response(sample_response)
+
+            # Note that we're using sampled data for validation
+            if num_samples < total_count:
+                validation_result['sampled'] = True
+                validation_result['sample_size'] = len(data_rows)
+
+        except Exception as e:
+            # If aggregation fails, fall back to smaller time chunks
+            print(f"[Thread]       Count query failed, using time-chunked approach: {e}")
+            return validate_timestream_data_chunked(
+                ts_query_client, config, device_id, measure_name, start_time, end_time, validation_result
+            )
+
         if not data_rows:
             return validation_result
-        
-        validation_result['has_data'] = True
-        validation_result['total_rows'] = len(data_rows)
-        
+
+        # Note: has_data and total_rows already set from COUNT(*) query above
         # Calculate sampling statistics and gaps
         sampling_stats = calculate_sampling_stats(data_rows, measure_name)
+
+        # Override unique_days_with_data with actual count from database query
+        # (calculate_sampling_stats only sees the sampled data, not all data)
+        sampling_stats['unique_days_with_data'] = unique_days_count
+
         validation_result['sampling_stats'] = sampling_stats
         
         # Get format rules for this modality
@@ -536,23 +530,48 @@ def validate_timestream_data_chunked(ts_query_client, config, device_id, measure
             # Continue with next chunk
         
         current_start = chunk_end
-    
+
     if total_count == 0:
         return validation_result
-    
+
     validation_result['has_data'] = True
     validation_result['total_rows'] = total_count
     validation_result['sampled'] = True
     validation_result['sample_size'] = len(all_data_rows)
-    
+
+    # Count unique days with data across entire dataset
+    start_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    end_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
+    unique_days_query = f"""
+        SELECT COUNT(DISTINCT DATE(time)) as unique_days
+        FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
+        WHERE measure_name = '{measure_name}'
+          AND device_id = '{device_id}'
+          AND time BETWEEN TIMESTAMP '{start_str}' AND TIMESTAMP '{end_str}'
+    """
+
+    try:
+        unique_days_response = _paginate_timestream_query(ts_query_client, unique_days_query)
+        unique_days_rows = parse_timestream_response(unique_days_response)
+        unique_days_count = int(unique_days_rows[0]['unique_days']) if unique_days_rows else 0
+        print(f"[Thread]       Found data on {unique_days_count} unique days")
+    except Exception as e:
+        print(f"[Thread]       Could not count unique days: {e}")
+        unique_days_count = 0
+
     # Continue with validation using sampled data
     data_rows = all_data_rows
-    
+
     if not data_rows:
         return validation_result
-    
+
     # Calculate sampling statistics and gaps
     sampling_stats = calculate_sampling_stats(data_rows, measure_name)
+
+    # Override unique_days_with_data with actual count from database query
+    # (calculate_sampling_stats only sees the sampled data, not all data)
+    sampling_stats['unique_days_with_data'] = unique_days_count
+
     validation_result['sampling_stats'] = sampling_stats
     
     # Get format rules for this modality
@@ -651,23 +670,48 @@ def validate_timestream_data_chunked(ts_query_client, config, device_id, measure
             # Continue with next chunk
         
         current_start = chunk_end
-    
+
     if total_count == 0:
         return validation_result
-    
+
     validation_result['has_data'] = True
     validation_result['total_rows'] = total_count
     validation_result['sampled'] = True
     validation_result['sample_size'] = len(all_data_rows)
-    
+
+    # Count unique days with data across entire dataset
+    start_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    end_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
+    unique_days_query = f"""
+        SELECT COUNT(DISTINCT DATE(time)) as unique_days
+        FROM "{config['timestream']['database']}"."{config['timestream']['table']}"
+        WHERE measure_name = '{measure_name}'
+          AND device_id = '{device_id}'
+          AND time BETWEEN TIMESTAMP '{start_str}' AND TIMESTAMP '{end_str}'
+    """
+
+    try:
+        unique_days_response = _paginate_timestream_query(ts_query_client, unique_days_query)
+        unique_days_rows = parse_timestream_response(unique_days_response)
+        unique_days_count = int(unique_days_rows[0]['unique_days']) if unique_days_rows else 0
+        print(f"[Thread]       Found data on {unique_days_count} unique days")
+    except Exception as e:
+        print(f"[Thread]       Could not count unique days: {e}")
+        unique_days_count = 0
+
     # Continue with validation using sampled data
     data_rows = all_data_rows
-    
+
     if not data_rows:
         return validation_result
-    
+
     # Calculate sampling statistics and gaps
     sampling_stats = calculate_sampling_stats(data_rows, measure_name)
+
+    # Override unique_days_with_data with actual count from database query
+    # (calculate_sampling_stats only sees the sampled data, not all data)
+    sampling_stats['unique_days_with_data'] = unique_days_count
+
     validation_result['sampling_stats'] = sampling_stats
     
     # Get format rules for this modality
@@ -733,37 +777,46 @@ def validate_postgres_label_data(db_config, device_id, start_time=None, end_time
     try:
         from export import get_postgres_label_date_range
         min_time, max_time = get_postgres_label_date_range(db_config, device_id)
-        
+
         if min_time is None or max_time is None:
             return validation_result
-        
-        # Determine validation time range
-        if end_time is None:
-            end_time = datetime.utcnow()
-        else:
-            if isinstance(end_time, str):
-                try:
-                    end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00') if 'Z' in end_time else end_time)
-                except ValueError:
-                    end_time = datetime.strptime(end_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
-        
+
+        # Parse actual data timestamps for date range display
+        try:
+            actual_min_dt = datetime.fromisoformat(min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time)
+        except ValueError:
+            actual_min_dt = datetime.strptime(min_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
+        try:
+            actual_max_dt = datetime.fromisoformat(max_time.replace('Z', '+00:00') if 'Z' in max_time else max_time)
+        except ValueError:
+            actual_max_dt = datetime.strptime(max_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
+
+        # Store the actual data period (first to last timestamp)
+        validation_result['date_range'] = {
+            'min': actual_min_dt.isoformat(),
+            'max': actual_max_dt.isoformat()
+        }
+
+        # Determine validation time range for filtering
         if start_time is None:
             # Validate all available data from beginning
-            try:
-                start_time = datetime.fromisoformat(min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time)
-            except ValueError:
-                start_time = datetime.strptime(min_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
+            start_time = actual_min_dt
         else:
             if isinstance(start_time, str):
                 try:
                     start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00') if 'Z' in start_time else start_time)
                 except ValueError:
                     start_time = datetime.strptime(start_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
-        
-        validation_result['date_range'] = {
-            'min': start_time.isoformat(),
-            'max': end_time.isoformat()
-        }
+
+        # Use actual max timestamp for end_time to count all data
+        if end_time is None:
+            end_time = actual_max_dt
+        else:
+            if isinstance(end_time, str):
+                try:
+                    end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00') if 'Z' in end_time else end_time)
+                except ValueError:
+                    end_time = datetime.strptime(end_time.split('.')[0], '%Y-%m-%d %H:%M:%S')
         
         sub_measure_names = MEASURE_DEFINITIONS.get('label_data', [])
         data_rows = query_postgres_label_data(db_config, device_id, sub_measure_names)
@@ -962,22 +1015,10 @@ def validate_single_user(user_info, config, history, run_timestamp, results_file
             # Validate each modality
             for measure_name in MEASURE_DEFINITIONS.keys():
                 print(f"[Thread]     Validating {measure_name} for device {device_id}...", flush=True)
-                
-                # Determine start time based on history
-                latest_end_date = get_latest_validation_date(history, user_id, device_id, measure_name)
-                start_time = None
-                
-                if latest_end_date:
-                    # User/device/modality exists in history - validate from last check to now
-                    print(f"[Thread]       Found previous validation, checking from {latest_end_date} to now", flush=True)
-                    try:
-                        start_time = datetime.fromisoformat(latest_end_date.replace('Z', '+00:00') if 'Z' in latest_end_date else latest_end_date)
-                    except ValueError:
-                        start_time = datetime.strptime(latest_end_date.split('.')[0], '%Y-%m-%d %H:%M:%S')
-                else:
-                    # New user/device/modality - validate all available data
-                    print(f"[Thread]       No previous validation found, checking all available data", flush=True)
-                    start_time = None  # Will validate from beginning
+
+                # Always validate all available data (no history-based incremental validation)
+                print(f"[Thread]       Validating all available data", flush=True)
+                start_time = None  # Will validate from beginning
                 
                 try:
                     if measure_name == 'label_data':
@@ -1025,30 +1066,28 @@ def validate_single_user(user_info, config, history, run_timestamp, results_file
 
 def run_validation(days_back=1, max_workers=4):
     """Run validation for all users and devices in parallel
-    
-    For each user/device/modality:
-    - If not in history: validate all available data
-    - If in history: validate from last checked date to now
-    
+
+    Always validates all available data for each user/device/modality.
+
     Args:
-        days_back: Ignored (kept for compatibility, uses history-based approach)
+        days_back: Ignored (kept for compatibility)
         max_workers: Number of parallel workers (default: 4)
     """
     print(f"Starting data validation at {datetime.now()}")
     print(f"Using {max_workers} parallel workers")
-    
+
     config = load_all_config()
-    
+
     # Validate configurations
     if not all(config["db"].values()):
         raise ValueError("Database configuration is not set")
-    
+
     if not config["timestream"]["database"] or not config["timestream"]["table"]:
         raise ValueError("Timestream configuration is not set")
-    
-    # Load validation history
+
+    # Load validation history (kept for saving results, but not used for incremental validation)
     history = load_validation_history()
-    print(f"Loaded validation history for {len(history)} users")
+    print(f"Loaded validation history for {len(history)} users (running full validation)")
     
     # Get all users with devices
     print("Fetching users and devices...")
@@ -1071,7 +1110,7 @@ def run_validation(days_back=1, max_workers=4):
     # Initialize results structure (will be updated incrementally)
     results = {
         'last_run': run_timestamp,
-        'validation_strategy': 'incremental',
+        'validation_strategy': 'full',
         'parallel_workers': max_workers,
         'users': existing_results.get('users', [])  # Start with existing users
     }

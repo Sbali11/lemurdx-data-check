@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Coverage Errors - LemurDX Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+        .header-left h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: #f0f0f0;
+        }
+
+        /* Info Card */
+        .info-card {
+            background: #e8f4f8;
+            border-left: 4px solid #007bff;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+        }
+        .info-card-title {
+            font-weight: 700;
+            color: #0056b3;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .info-card-text {
+            color: #333;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* Summary Cards */
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            display: none;
+        }
+        .summary-card {
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-card.total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .summary-card.success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+        .summary-card.warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+        .summary-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .summary-card-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+
+        /* Controls */
+        .controls-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
+        .form-group input {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-group .hint {
+            font-size: 11px;
+            color: #999;
+        }
+        .analyze-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .analyze-btn:hover {
+            background: #218838;
+        }
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Progress */
+        .progress-container {
+            margin-bottom: 20px;
+            display: none;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* Sensor Section */
+        .sensor-section {
+            margin-bottom: 30px;
+        }
+        .sensor-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .sensor-section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        .sensor-section-count {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #fff3cd;
+            color: #856404;
+        }
+        .sensor-section-ok {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background: #d4edda;
+            border-radius: 6px;
+            color: #155724;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        th.sensor-col {
+            text-align: center;
+            min-width: 130px;
+        }
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .user-cell {
+            font-weight: 600;
+            color: #333;
+        }
+        .email-cell {
+            color: #666;
+            font-size: 12px;
+        }
+        .device-cell {
+            color: #666;
+            font-family: monospace;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 50px;
+        }
+        .status-ok {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Messages */
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Expandable rows */
+        .data-row {
+            cursor: pointer;
+        }
+        .data-row:hover {
+            background: #f0f4ff !important;
+        }
+        .expand-indicator {
+            display: inline-block;
+            width: 16px;
+            font-size: 10px;
+            color: #999;
+            transition: transform 0.2s;
+            margin-right: 4px;
+        }
+        .data-row.expanded .expand-indicator {
+            transform: rotate(90deg);
+        }
+        .detail-row {
+            display: none;
+        }
+        .detail-row.visible {
+            display: table-row;
+        }
+        .detail-row td {
+            padding: 0;
+            border-bottom: 2px solid #667eea;
+        }
+        .detail-panel {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .sensor-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .sensor-detail-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-top: 3px solid #667eea;
+        }
+        .sensor-detail-card.ref-sensor {
+            border-top-color: #ffc107;
+        }
+        .sensor-detail-card.max-sensor {
+            border-top-color: #28a745;
+        }
+        .sensor-detail-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sensor-detail-title .tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .tag-ref {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .tag-max {
+            background: #d4edda;
+            color: #155724;
+        }
+        .sensor-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        .sensor-meta strong {
+            color: #333;
+        }
+        .days-list-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            margin-top: 10px;
+        }
+        .month-group {
+            margin-bottom: 8px;
+        }
+        .month-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+        .day-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+        .day-chip {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+            background: #e9ecef;
+            color: #495057;
+        }
+        .sensor-detail-card.ref-sensor .day-chip {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .sensor-detail-card.max-sensor .day-chip {
+            background: #d4edda;
+            color: #155724;
+        }
+        .no-days-msg {
+            font-size: 12px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Sensor Coverage Errors</h1>
+                <p class="subtitle">Identify participants where any sensor has fewer data days than the others</p>
+            </div>
+            <a href="{{ url_for('admin_page') }}" class="back-link">&larr; Back to Admin</a>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card">
+            <div class="info-card-title">How This Page Works</div>
+            <div class="info-card-text">
+                This page analyzes <strong>only participants with custom enrollment periods</strong>.
+                For each participant, it fetches the number of days with data for each sensor within
+                their custom enrollment range. Each sensor gets its own section below, showing
+                participants where that sensor has fewer days of data than the maximum across the
+                other sensors. The threshold controls the minimum gap size to report.
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <div class="controls-row">
+                <div class="form-group" style="flex: 0 0 180px;">
+                    <label for="threshold">Minimum Gap (days)</label>
+                    <input type="number" id="threshold" value="1" min="0" step="1">
+                    <span class="hint">Show sensors N+ days behind the max</span>
+                </div>
+                <div style="flex: 0 0 auto;">
+                    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+                        Analyze Coverage
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-section" id="summarySection">
+            <div class="summary-card total">
+                <div class="summary-card-value" id="totalEnrolled">-</div>
+                <div class="summary-card-label">Custom Enrollments</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-card-value" id="flaggedCount">-</div>
+                <div class="summary-card-label">Participants with Gaps</div>
+            </div>
+            <div class="summary-card success">
+                <div class="summary-card-value" id="okCount">-</div>
+                <div class="summary-card-label">All Sensors Aligned</div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text" id="progressText">Loading...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsContent">
+            <div class="empty-state">
+                <p>Click "Analyze Coverage" to begin.</p>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div class="message-error" id="errorMsg"></div>
+    </div>
+
+    <script>
+        const BASE_URL = "{{ request.script_root }}";
+        const SENSORS = ['motion_data', 'heart_rate_data', 'location_data', 'label_data'];
+        const SENSOR_NAMES = {
+            'motion_data': 'Motion Data',
+            'heart_rate_data': 'Heart Rate Data',
+            'location_data': 'Location Data',
+            'label_data': 'Label Data'
+        };
+
+        let customEnrollments = {};
+        let validationResults = {};
+        let lastParticipantData = null;
+
+        // Re-filter instantly when threshold changes (if data already loaded)
+        document.getElementById('threshold').addEventListener('change', refilter);
+
+        function refilter() {
+            if (!lastParticipantData) return;
+            var threshold = parseInt(document.getElementById('threshold').value) || 1;
+            var allResults = processAllSensors(lastParticipantData, threshold);
+            renderAllResults(allResults, threshold);
+        }
+
+        async function runAnalysis() {
+            var threshold = parseInt(document.getElementById('threshold').value) || 1;
+
+            var btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Loading...';
+
+            showProgress(true);
+            updateProgress(0, 1, 'Fetching enrollment data...');
+            hideError();
+
+            try {
+                var [enrollRes, valRes] = await Promise.all([
+                    fetch(BASE_URL + '/api/custom-enrollment', { credentials: 'include' }),
+                    fetch(BASE_URL + '/api/validation-results', { credentials: 'include' })
+                ]);
+
+                if (!enrollRes.ok) throw new Error('Failed to fetch custom enrollments');
+                customEnrollments = await enrollRes.json();
+
+                if (valRes.ok || valRes.status === 202) {
+                    validationResults = await valRes.json();
+                } else {
+                    validationResults = { users: [] };
+                }
+
+                var enrollmentEntries = Object.values(customEnrollments);
+
+                if (enrollmentEntries.length === 0) {
+                    document.getElementById('resultsContent').innerHTML =
+                        '<div class="empty-state">' +
+                        '<p>No custom enrollment periods found.</p>' +
+                        '<p style="margin-top: 10px;">Set custom enrollment periods on the ' +
+                        '<a href="' + BASE_URL + '/admin/validation" style="color: #667eea; font-weight: 600;">Data Validation</a> page first.</p>' +
+                        '</div>';
+                    resetButton(btn);
+                    showProgress(false);
+                    return;
+                }
+
+                var tasks = [];
+                var participantData = {};
+
+                for (var ei = 0; ei < enrollmentEntries.length; ei++) {
+                    var enroll = enrollmentEntries[ei];
+                    var key = enroll.user_id + '-' + enroll.device_id;
+                    participantData[key] = {
+                        enroll: enroll,
+                        dayCounts: {},
+                        daysData: {}
+                    };
+                    for (var si = 0; si < SENSORS.length; si++) {
+                        tasks.push({ enroll: enroll, sensor: SENSORS[si], key: key });
+                    }
+                }
+
+                var totalRequests = tasks.length;
+                var completedRequests = 0;
+                var taskIndex = 0;
+                var concurrency = 2;
+
+                async function runNextTask() {
+                    while (taskIndex < tasks.length) {
+                        var task = tasks[taskIndex++];
+                        try {
+                            // Only pass user_id for label_data (needed for participant filtering).
+                            // For Timestream sensors, omit user_id to avoid the API's enrollment
+                            // date scoping which narrows custom dates to the original enrollment.
+                            var url = BASE_URL + '/api/device/' + task.enroll.device_id +
+                                '/sensor/' + task.sensor + '/daily-availability' +
+                                '?start_date=' + task.enroll.start_date +
+                                '&end_date=' + task.enroll.end_date;
+                            if (task.sensor === 'label_data') {
+                                url += '&user_id=' + task.enroll.user_id;
+                            }
+                            var res = await fetch(url, { credentials: 'include' });
+                            var data = await res.json();
+                            var days = data.days_with_data || [];
+                            participantData[task.key].dayCounts[task.sensor] = days.length;
+                            participantData[task.key].daysData[task.sensor] = days;
+                        } catch (e) {
+                            participantData[task.key].dayCounts[task.sensor] = 0;
+                            participantData[task.key].daysData[task.sensor] = [];
+                        }
+                        completedRequests++;
+                        updateProgress(completedRequests, totalRequests,
+                            'Fetching sensor data: ' + completedRequests + ' / ' + totalRequests + ' requests...');
+                    }
+                }
+
+                var workers = [];
+                for (var w = 0; w < Math.min(concurrency, tasks.length); w++) {
+                    workers.push(runNextTask());
+                }
+                await Promise.all(workers);
+
+                lastParticipantData = participantData;
+
+                var allResults = processAllSensors(participantData, threshold);
+                renderAllResults(allResults, threshold);
+
+            } catch (err) {
+                showError('Analysis failed: ' + err.message);
+            } finally {
+                resetButton(btn);
+                showProgress(false);
+            }
+        }
+
+        function processAllSensors(participantData, threshold) {
+            // For each sensor as reference, find participants where it's behind
+            var sensorSections = {};
+            var flaggedParticipants = new Set();
+
+            for (var si = 0; si < SENSORS.length; si++) {
+                var refSensor = SENSORS[si];
+                var flagged = [];
+
+                for (var key in participantData) {
+                    var pData = participantData[key];
+                    var enroll = pData.enroll;
+                    var dayCounts = pData.dayCounts;
+                    var daysData = pData.daysData || {};
+                    var refDays = dayCounts[refSensor] || 0;
+
+                    // Max days across OTHER sensors
+                    var maxOtherDays = 0;
+                    var maxSensor = null;
+                    for (var oi = 0; oi < SENSORS.length; oi++) {
+                        if (SENSORS[oi] === refSensor) continue;
+                        var otherCount = dayCounts[SENSORS[oi]] || 0;
+                        if (otherCount > maxOtherDays) {
+                            maxOtherDays = otherCount;
+                            maxSensor = SENSORS[oi];
+                        }
+                    }
+
+                    var gap = maxOtherDays - refDays;
+                    if (gap >= threshold) {
+                        var startDate = new Date(enroll.start_date + 'T00:00:00');
+                        var endDate = new Date(enroll.end_date + 'T00:00:00');
+                        var enrollDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+                        flagged.push({
+                            userId: enroll.user_id,
+                            deviceId: enroll.device_id,
+                            email: lookupEmail(enroll.user_id),
+                            startDate: enroll.start_date,
+                            endDate: enroll.end_date,
+                            enrollDays: enrollDays,
+                            referenceDays: refDays,
+                            maxOtherDays: maxOtherDays,
+                            maxSensor: maxSensor,
+                            gap: gap,
+                            dayCounts: dayCounts,
+                            daysData: daysData,
+                            dateRanges: lookupDateRanges(enroll.user_id, enroll.device_id)
+                        });
+                        flaggedParticipants.add(key);
+                    }
+                }
+
+                // Sort by gap descending
+                flagged.sort(function(a, b) { return b.gap - a.gap; });
+                sensorSections[refSensor] = flagged;
+            }
+
+            return {
+                totalEnrolled: Object.keys(participantData).length,
+                totalFlagged: flaggedParticipants.size,
+                sensorSections: sensorSections
+            };
+        }
+
+        function lookupDateRanges(userId, deviceId) {
+            var ranges = {};
+            if (!validationResults || !validationResults.users) return ranges;
+            for (var i = 0; i < validationResults.users.length; i++) {
+                var user = validationResults.users[i];
+                if (user.user_id !== userId) continue;
+                var devices = user.devices || [];
+                for (var d = 0; d < devices.length; d++) {
+                    if (devices[d].device_id !== String(deviceId)) continue;
+                    var mods = devices[d].modalities || {};
+                    for (var sensor in mods) {
+                        if (mods[sensor] && mods[sensor].date_range) {
+                            ranges[sensor] = mods[sensor].date_range;
+                        }
+                    }
+                }
+            }
+            return ranges;
+        }
+
+        function lookupEmail(userId) {
+            if (!validationResults || !validationResults.users) return 'N/A';
+            for (var i = 0; i < validationResults.users.length; i++) {
+                if (validationResults.users[i].user_id === userId) {
+                    return validationResults.users[i].email;
+                }
+            }
+            return 'N/A';
+        }
+
+        function renderAllResults(allResults, threshold) {
+            var summaryEl = document.getElementById('summarySection');
+            summaryEl.style.display = 'grid';
+            document.getElementById('totalEnrolled').textContent = allResults.totalEnrolled;
+            document.getElementById('flaggedCount').textContent = allResults.totalFlagged;
+            document.getElementById('okCount').textContent = allResults.totalEnrolled - allResults.totalFlagged;
+
+            if (allResults.totalFlagged === 0) {
+                document.getElementById('resultsContent').innerHTML =
+                    '<div class="empty-state">' +
+                    '<div class="icon">&#10003;</div>' +
+                    '<h3 style="color: #28a745;">No Coverage Gaps Found</h3>' +
+                    '<p style="margin-top: 10px;">All ' + allResults.totalEnrolled +
+                    ' participants with custom enrollment periods have all sensors within ' +
+                    threshold + ' day(s) of each other.</p>' +
+                    '</div>';
+                return;
+            }
+
+            var html = '';
+
+            for (var si = 0; si < SENSORS.length; si++) {
+                var refSensor = SENSORS[si];
+                var flagged = allResults.sensorSections[refSensor];
+
+                html += '<div class="sensor-section">';
+                html += '<div class="sensor-section-header">';
+                html += '<div class="sensor-section-title">' + SENSOR_NAMES[refSensor] + '</div>';
+
+                if (flagged.length > 0) {
+                    html += '<div class="sensor-section-count">' + flagged.length + ' participant(s) behind</div>';
+                } else {
+                    html += '<div class="sensor-section-count" style="background:#d4edda;color:#155724;">No gaps</div>';
+                }
+                html += '</div>';
+
+                if (flagged.length === 0) {
+                    html += '<div class="sensor-section-ok">All participants have ' +
+                        SENSOR_NAMES[refSensor] + ' within ' + threshold + ' day(s) of the max other sensor.</div>';
+                    html += '</div>';
+                    continue;
+                }
+
+                // Build table for this sensor section
+                html += '<div class="table-container"><table><thead><tr>';
+                html += '<th>User ID</th>';
+                html += '<th>Email</th>';
+                html += '<th>Device</th>';
+                html += '<th>Custom Enrollment</th>';
+
+                for (var ti = 0; ti < SENSORS.length; ti++) {
+                    var s = SENSORS[ti];
+                    var isRef = s === refSensor;
+                    var thStyle = isRef ? ' style="background: rgba(255,255,255,0.15); border-left: 2px solid rgba(255,255,255,0.4);"' : '';
+                    html += '<th class="sensor-col"' + thStyle + '>' +
+                        SENSOR_NAMES[s] + (isRef ? '<br><span style="font-size:10px;font-weight:normal;text-transform:none;">(this sensor)</span>' : '<br><span style="font-size:10px;font-weight:normal;text-transform:none;">days</span>') +
+                        '</th>';
+                }
+
+                html += '<th class="sensor-col">Gap</th>';
+                html += '</tr></thead><tbody>';
+
+                var totalCols = 4 + SENSORS.length + 1;
+
+                for (var fi = 0; fi < flagged.length; fi++) {
+                    var r = flagged[fi];
+                    var rowId = 'row-' + refSensor + '-' + r.userId + '-' + r.deviceId;
+
+                    html += '<tr class="data-row" id="' + rowId + '" onclick="toggleDetail(\'' + rowId + '\')">';
+                    html += '<td class="user-cell"><span class="expand-indicator">&#9654;</span>' + r.userId + '</td>';
+                    html += '<td class="email-cell">' + r.email + '</td>';
+                    html += '<td class="device-cell">' + r.deviceId + '</td>';
+                    html += '<td style="font-size: 12px; color: #555;">' +
+                        r.startDate + ' &mdash; ' + r.endDate +
+                        '<br><span style="font-size:11px;color:#999;">(' + r.enrollDays + ' days)</span></td>';
+
+                    for (var sj = 0; sj < SENSORS.length; sj++) {
+                        var sensor = SENSORS[sj];
+                        var count = r.dayCounts[sensor] || 0;
+                        var isReference = sensor === refSensor;
+                        var isMax = !isReference && count === r.maxOtherDays && count > 0;
+
+                        var cellStyle = 'text-align: center; font-weight: 600; font-size: 14px;';
+                        if (isReference) {
+                            cellStyle += ' background: #fff3cd;';
+                        } else if (isMax) {
+                            cellStyle += ' background: #d4edda;';
+                        }
+
+                        html += '<td style="' + cellStyle + '">';
+                        if (isReference) {
+                            html += '<span class="status-badge status-warning">' + count + '</span>';
+                        } else if (isMax) {
+                            html += '<span class="status-badge status-ok">' + count + '</span>';
+                        } else {
+                            html += count;
+                        }
+
+                        if (r.enrollDays > 0) {
+                            var pct = ((count / r.enrollDays) * 100).toFixed(0);
+                            html += '<div style="font-size:10px;color:#999;font-weight:normal;">' + pct + '%</div>';
+                        }
+                        html += '</td>';
+                    }
+
+                    var gapColor = r.gap >= 10 ? '#dc3545' : r.gap >= 5 ? '#e67e22' : '#856404';
+                    html += '<td style="text-align: center; font-weight: 700; font-size: 16px; color: ' + gapColor + ';">' +
+                        r.gap + '<div style="font-size:10px;color:#999;font-weight:normal;">days behind</div></td>';
+
+                    html += '</tr>';
+
+                    // Detail row
+                    html += '<tr class="detail-row" id="' + rowId + '-detail">';
+                    html += '<td colspan="' + totalCols + '">';
+                    html += buildDetailPanel(r, refSensor);
+                    html += '</td></tr>';
+                }
+
+                html += '</tbody></table></div>';
+                html += '</div>'; // close sensor-section
+            }
+
+            document.getElementById('resultsContent').innerHTML = html;
+        }
+
+        function toggleDetail(rowId) {
+            var dataRow = document.getElementById(rowId);
+            var detailRow = document.getElementById(rowId + '-detail');
+            if (dataRow.classList.contains('expanded')) {
+                dataRow.classList.remove('expanded');
+                detailRow.classList.remove('visible');
+            } else {
+                dataRow.classList.add('expanded');
+                detailRow.classList.add('visible');
+            }
+        }
+
+        function buildDetailPanel(r, referenceSensor) {
+            var html = '<div class="detail-panel">';
+            html += '<div class="sensor-details-grid">';
+
+            for (var i = 0; i < SENSORS.length; i++) {
+                var sensor = SENSORS[i];
+                var isRef = sensor === referenceSensor;
+                var isMax = !isRef && (r.dayCounts[sensor] || 0) === r.maxOtherDays && r.maxOtherDays > 0;
+                var cardClass = 'sensor-detail-card';
+                if (isRef) cardClass += ' ref-sensor';
+                else if (isMax) cardClass += ' max-sensor';
+
+                html += '<div class="' + cardClass + '">';
+
+                html += '<div class="sensor-detail-title">' + SENSOR_NAMES[sensor];
+                if (isRef) html += ' <span class="tag tag-ref">BEHIND</span>';
+                else if (isMax) html += ' <span class="tag tag-max">MAX</span>';
+                html += '</div>';
+
+                var count = r.dayCounts[sensor] || 0;
+                var pct = r.enrollDays > 0 ? ((count / r.enrollDays) * 100).toFixed(1) : 0;
+                html += '<div class="sensor-meta">';
+                html += '<strong>' + count + '</strong> days with data (' + pct + '% of ' + r.enrollDays + ' day enrollment)<br>';
+
+                var dr = r.dateRanges[sensor];
+                if (dr) {
+                    html += 'First seen: <strong>' + formatTimestamp(dr.min) + '</strong><br>';
+                    html += 'Last seen: <strong>' + formatTimestamp(dr.max) + '</strong>';
+                } else {
+                    html += '<em style="color:#999;">No timestamp data available</em>';
+                }
+                html += '</div>';
+
+                var days = (r.daysData && r.daysData[sensor]) || [];
+                if (days.length > 0) {
+                    html += '<div class="days-list-header">Days with data</div>';
+                    html += buildDaysList(days);
+                } else {
+                    html += '<div class="no-days-msg">No data days in enrollment period</div>';
+                }
+
+                html += '</div>';
+            }
+
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function buildDaysList(days) {
+            var months = {};
+            for (var i = 0; i < days.length; i++) {
+                var parts = days[i].split('-');
+                var monthKey = parts[0] + '-' + parts[1];
+                if (!months[monthKey]) months[monthKey] = [];
+                months[monthKey].push(parseInt(parts[2], 10));
+            }
+
+            var html = '';
+            var monthKeys = Object.keys(months).sort();
+            for (var m = 0; m < monthKeys.length; m++) {
+                var mk = monthKeys[m];
+                var mParts = mk.split('-');
+                var monthName = new Date(parseInt(mParts[0]), parseInt(mParts[1]) - 1, 1)
+                    .toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+
+                html += '<div class="month-group">';
+                html += '<div class="month-label">' + monthName + ' (' + months[mk].length + ' days)</div>';
+                html += '<div class="day-chips">';
+                var sortedDays = months[mk].sort(function(a, b) { return a - b; });
+                for (var d = 0; d < sortedDays.length; d++) {
+                    html += '<span class="day-chip">' + sortedDays[d] + '</span>';
+                }
+                html += '</div></div>';
+            }
+            return html;
+        }
+
+        function formatTimestamp(ts) {
+            if (!ts) return 'N/A';
+            try {
+                var dt = new Date(ts);
+                return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
+                    ' ' + dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } catch (e) {
+                return ts;
+            }
+        }
+
+        function showProgress(visible) {
+            document.getElementById('progressContainer').style.display = visible ? 'block' : 'none';
+        }
+
+        function updateProgress(completed, total, text) {
+            var pct = total > 0 ? (completed / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function resetButton(btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Analyze Coverage';
+        }
+
+        function showError(message) {
+            var el = document.getElementById('errorMsg');
+            el.textContent = message;
+            el.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
