@@ -243,7 +243,8 @@
                 1. Optionally filter participants by those with custom dates<br>
                 2. Select one or more participants from the table<br>
                 3. Click on a sensor button to download data for that sensor<br>
-                4. Each participant's data will be downloaded as a separate CSV file with dates in each row
+                4. Data is downloaded day-by-day to prevent timeouts (one CSV per day)<br>
+                5. Each file is named: user_device_sensor_YYYY-MM-DD.csv
             </div>
         </div>
 
@@ -467,6 +468,18 @@
             document.getElementById('btnLabel').disabled = !hasSelection;
         }
 
+        function getDaysBetween(startDate, endDate) {
+            const days = [];
+            const current = new Date(startDate);
+            const end = new Date(endDate);
+            
+            while (current <= end) {
+                days.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            }
+            return days;
+        }
+
         async function downloadBySensor(sensorType) {
             if (selectedParticipants.size === 0) {
                 showError('Please select at least one participant');
@@ -480,7 +493,7 @@
             document.getElementById('error').style.display = 'none';
             document.getElementById('success').style.display = 'none';
             document.getElementById('downloadProgress').style.display = 'block';
-            document.getElementById('downloadProgress').innerHTML = '<div class="progress-item">Starting downloads...</div>';
+            document.getElementById('downloadProgress').innerHTML = '<div class="progress-item">Starting day-by-day downloads...</div>';
 
             let successCount = 0;
             let failCount = 0;
@@ -489,51 +502,113 @@
                 for (const deviceId of user.devices) {
                     try {
                         const progressDiv = document.getElementById('downloadProgress');
-                        const progressItem = document.createElement('div');
-                        progressItem.className = 'progress-item';
-                        progressItem.textContent = `Downloading ${sensorType} for ${user.email} (Device: ${deviceId})...`;
-                        progressDiv.appendChild(progressItem);
+                        const userProgressItem = document.createElement('div');
+                        userProgressItem.className = 'progress-item';
+                        userProgressItem.textContent = `Processing ${user.email} (Device: ${deviceId})...`;
+                        userProgressItem.style.fontWeight = 'bold';
+                        progressDiv.appendChild(userProgressItem);
 
                         // Get custom dates if available
                         const key = `${user.id}-${deviceId}`;
-                        let params = new URLSearchParams({
-                            device_id: deviceId,
-                            measure_name: sensorType
-                        });
-
+                        let startDate, endDate;
+                        
                         if (customEnrollments[key]) {
-                            params.append('start_time', customEnrollments[key].start_date + ' 00:00:00');
-                            params.append('end_time', customEnrollments[key].end_date + ' 23:59:59');
+                            startDate = customEnrollments[key].start_date;
+                            endDate = customEnrollments[key].end_date;
+                        } else {
+                            // Get available date range from API
+                            const dateRangeResponse = await fetch(`${BASE_URL}/api/date-range?device_id=${deviceId}&measure_name=${sensorType}`, {
+                                credentials: 'include'
+                            });
+                            
+                            if (!dateRangeResponse.ok) {
+                                throw new Error('No data available for this device/sensor');
+                            }
+                            
+                            const dateRange = await dateRangeResponse.json();
+                            startDate = dateRange.min_time.split('T')[0];
+                            endDate = dateRange.max_time.split('T')[0];
                         }
 
-                        const response = await fetch(`${BASE_URL}/export?${params.toString()}`, {
-                            method: 'GET',
-                            credentials: 'include'
-                        });
+                        // Split into days
+                        const days = getDaysBetween(startDate, endDate);
+                        userProgressItem.textContent = `Processing ${user.email} (Device: ${deviceId}) - ${days.length} days...`;
 
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Export failed');
+                        // Download each day
+                        for (let i = 0; i < days.length; i++) {
+                            const day = days[i];
+                            const dayStr = day.toISOString().split('T')[0];
+                            
+                            const dayProgressItem = document.createElement('div');
+                            dayProgressItem.className = 'progress-item';
+                            dayProgressItem.textContent = `  Day ${i + 1}/${days.length}: ${dayStr}...`;
+                            dayProgressItem.style.paddingLeft = '20px';
+                            progressDiv.appendChild(dayProgressItem);
+
+                            try {
+                                const params = new URLSearchParams({
+                                    device_id: deviceId,
+                                    measure_name: sensorType,
+                                    start_time: dayStr + ' 00:00:00',
+                                    end_time: dayStr + ' 23:59:59'
+                                });
+
+                                const response = await fetch(`${BASE_URL}/export?${params.toString()}`, {
+                                    method: 'GET',
+                                    credentials: 'include'
+                                });
+
+                                if (!response.ok) {
+                                    let errorMessage = 'Export failed';
+                                    const contentType = response.headers.get('content-type');
+                                    if (contentType && contentType.includes('application/json')) {
+                                        const errorData = await response.json();
+                                        errorMessage = errorData.error || errorMessage;
+                                        // Skip "no data" errors - they're expected
+                                        if (errorMessage.includes('no data was found')) {
+                                            dayProgressItem.textContent = `  Day ${i + 1}/${days.length}: ${dayStr} - no data`;
+                                            dayProgressItem.style.color = '#999';
+                                            continue;
+                                        }
+                                    }
+                                    throw new Error(errorMessage);
+                                }
+
+                                const blob = await response.blob();
+                                
+                                // Check if the blob has content
+                                if (blob.size === 0) {
+                                    dayProgressItem.textContent = `  Day ${i + 1}/${days.length}: ${dayStr} - no data`;
+                                    dayProgressItem.style.color = '#999';
+                                    continue;
+                                }
+
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                const userEmail = user.email.split('@')[0];
+                                a.download = `${userEmail}_${deviceId}_${sensorType}_${dayStr}.csv`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+
+                                dayProgressItem.textContent = `  ✓ Day ${i + 1}/${days.length}: ${dayStr}`;
+                                dayProgressItem.style.color = '#28a745';
+                                successCount++;
+
+                                // Small delay to prevent overwhelming the server
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                            } catch (dayError) {
+                                dayProgressItem.textContent = `  ✗ Day ${i + 1}/${days.length}: ${dayStr} - ${dayError.message}`;
+                                dayProgressItem.style.color = '#dc3545';
+                                failCount++;
+                            }
                         }
 
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        const timestamp = new Date().toISOString().slice(0, 10);
-                        const userEmail = user.email.split('@')[0];
-                        a.download = `${userEmail}_${deviceId}_${sensorType}_${timestamp}.csv`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
+                        userProgressItem.textContent = `✓ Completed ${user.email} (Device: ${deviceId})`;
+                        userProgressItem.style.color = '#28a745';
 
-                        progressItem.textContent = `✓ Downloaded ${sensorType} for ${user.email} (Device: ${deviceId})`;
-                        progressItem.style.color = '#28a745';
-                        successCount++;
-
-                        // Small delay to prevent overwhelming the server
-                        await new Promise(resolve => setTimeout(resolve, 500));
                     } catch (error) {
                         console.error('Download error:', error);
                         const progressDiv = document.getElementById('downloadProgress');
@@ -550,9 +625,9 @@
             document.getElementById('loading').style.display = 'none';
             
             if (failCount === 0) {
-                showSuccess(`Successfully downloaded ${successCount} file(s)`);
+                showSuccess(`Successfully downloaded ${successCount} day file(s)`);
             } else {
-                showError(`Downloaded ${successCount} file(s), ${failCount} failed. See details above.`);
+                showError(`Downloaded ${successCount} day file(s), ${failCount} failed. See details above.`);
             }
         }
 

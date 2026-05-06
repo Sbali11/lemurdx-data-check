@@ -125,6 +125,31 @@ def authenticate():
             {'WWW-Authenticate': 'Basic realm="Login Required"'}
         )
 
+def parse_timestream_timestamp(timestamp_str):
+    """Parse Timestream timestamp which may include nanoseconds"""
+    if not timestamp_str:
+        return None
+    
+    # Remove timezone indicator if present
+    ts = timestamp_str.replace('Z', '').replace('+00:00', '')
+    
+    # Timestream returns timestamps with nanoseconds (e.g., 2025-10-22 18:49:47.213000000)
+    # Python's datetime only supports microseconds, so truncate to 6 decimal places
+    if '.' in ts:
+        date_part, frac_part = ts.rsplit('.', 1)
+        # Keep only first 6 digits (microseconds)
+        frac_part = frac_part[:6]
+        ts = f"{date_part}.{frac_part}"
+    
+    try:
+        return datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f')
+    except ValueError:
+        try:
+            return datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            # Try ISO format
+            return datetime.fromisoformat(ts)
+
 def requires_auth(f):
     """Decorator to require HTTP Basic Auth"""
     @wraps(f)
@@ -330,8 +355,11 @@ def get_date_range():
             return jsonify({'error': 'No data found for this device and measure type'}), 404
         
         # Format for datetime-local input (YYYY-MM-DDTHH:MM)
-        min_time_dt = datetime.fromisoformat(min_time.replace('Z', '+00:00') if 'Z' in min_time else min_time)
-        max_time_dt = datetime.fromisoformat(max_time.replace('Z', '+00:00') if 'Z' in max_time else max_time)
+        min_time_dt = parse_timestream_timestamp(min_time)
+        max_time_dt = parse_timestream_timestamp(max_time)
+        
+        if min_time_dt is None or max_time_dt is None:
+            return jsonify({'error': 'Error parsing timestamps'}), 500
         
         return jsonify({
             'min_time': min_time_dt.strftime('%Y-%m-%dT%H:%M'),
@@ -490,7 +518,8 @@ def get_user_device_enrollment_dates(db_config, user_id, device_id):
                         MIN(DATE(tl.created_at)) as start_date,
                         MAX(DATE(COALESCE(tl.completed_at, tl.created_at))) as end_date
                     FROM training_labels tl
-                    JOIN watches w ON w.id = tl.watch_id
+                    JOIN users_watches uw ON uw.user_id = tl.participant_id
+                    JOIN watches w ON w.id = uw.watch_id
                     WHERE tl.participant_id = %s AND w.hardware_id = %s
                 """
                 cursor.execute(query, (user_id, device_id))
@@ -610,7 +639,8 @@ def get_label_days_with_data(db_config, device_id, start_date=None, end_date=Non
                 query = """
                     SELECT DISTINCT DATE(tl.created_at) as data_date
                     FROM training_labels tl
-                    JOIN watches w ON w.id = tl.watch_id
+                    JOIN users_watches uw ON uw.user_id = tl.participant_id
+                    JOIN watches w ON w.id = uw.watch_id
                     WHERE w.hardware_id = %s
                 """
                 params = [device_id]
